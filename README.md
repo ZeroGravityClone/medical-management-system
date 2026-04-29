@@ -1,17 +1,18 @@
-# Sistema Médico Desktop
+# Medical Desktop System
 
-Aplicación desarrollada en Python para gestión de pacientes y consultas médicas.
+Desktop medical management system for patient and consultation records, developed in Python.
 
-## Características
+## Features
 
-- Login de usuarios
-- Roles de administrador
-- Registro de pacientes
-- Base de datos SQLite
-- Interfaz gráfica moderna
-- Integración con IA (Groq)
+- User authentication system
+- Role-based access control (admin roles)
+- Patient registration and management
+- Medical consultation records
+- Local database using SQLite
+- Modern graphical user interface
+- AI integration using Groq
 
-## Tecnologías
+## Technologies Used
 
 - Python
 - CustomTkinter
@@ -19,6 +20,10 @@ Aplicación desarrollada en Python para gestión de pacientes y consultas médic
 - Pillow
 - Tkcalendar
 
-## Autor
+## Context
+
+This system was developed as part of a real-world hospital environment, as a modernization of a legacy medical management system.
+
+## Author
 
 José Ochoa
