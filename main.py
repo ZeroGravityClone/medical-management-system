@@ -16,6 +16,7 @@ import sys
 # ==============================================================================
 # GESTIÓN DE RUTAS PARA PYINSTALLER (EJECUTABLE)
 # ==============================================================================
+
 def obtener_rutas():
     """ Devuelve (ruta_para_bd, ruta_para_assets) """
     if getattr(sys, 'frozen', False):
