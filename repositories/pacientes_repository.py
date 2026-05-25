@@ -72,48 +72,32 @@ class PacientesRepository:
 
         conn.close()
         return existe is not None
+    
+    def existe_cedula_excluyendo_id(self, cedula, id_):
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT 1 FROM pacientes
+            WHERE cedula = ? AND id != ?
+        """, (cedula, id_))
+
+        existe = cur.fetchone()
+        conn.close()
+
+        return existe is not None
+
+    def obtener_resumen(self):
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT cedula, apellidos, nombres, fecha_registro, telefono, consulta
+            FROM pacientes
+        """)
+
+        data = cur.fetchall()
+        conn.close()
+        return data
 
 
-# ==============================================================================
-# Modulos CRUD
-# ==============================================================================
-
-
-def existe_cedula(self, cedula):
-    conn = sqlite3.connect(self.db_path)
-    cur = conn.cursor()
-
-    cur.execute("SELECT 1 FROM pacientes WHERE cedula = ?", (cedula,))
-    existe = cur.fetchone()
-
-    conn.close()
-    return existe is not None
-
-
-def insertar(self, data):
-    conn = sqlite3.connect(self.db_path)
-    cur = conn.cursor()
-
-    sql = """
-    INSERT INTO pacientes
-    (apellidos, nombres, cedula, fecha_nac, lugar_nac, sexo,
-    municipio, parroquia, comunidad, direccion,
-    condicion, telefono, consulta, fecha_registro)
-
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """
-
-    cur.execute(sql, data)
-
-    conn.commit()
-    conn.close()
-
-
-def buscar_por_cedula(self, cedula):
-    conn = sqlite3.connect(self.db_path)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM pacientes WHERE cedula = ?", (cedula,))
-    row = cur.fetchone()
-    conn.close()
-    return row

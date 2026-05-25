@@ -181,3 +181,4 @@ cython_debug/
 .cursorindexingignore
 *.md
 sistema_medico.db
+insertar en labd.py

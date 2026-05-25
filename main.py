@@ -12,22 +12,18 @@ from tkcalendar import DateEntry
 from datetime import date, datetime
 import os
 import sys
-from repositories.usuarios_repository import login
-from repositories import usuarios_repository as usuarios_repo
+from repositories.usuarios_repository import UsuariosRepository
 from repositories.pacientes_repository import PacientesRepository
+from repositories.catalogos_repository import CatalogosRepository
 
 # ==============================================================================
 # GESTIÓN DE RUTAS PARA PYINSTALLER (EJECUTABLE)
 # ==============================================================================
-
+3
 def obtener_rutas():
-    """ Devuelve (ruta_para_bd, ruta_para_assets) """
-    if getattr(sys, 'frozen', False):
-        ruta_bd = os.path.dirname(sys.executable) 
-        ruta_assets = sys._MEIPASS 
-    else:
-        ruta_bd = os.path.dirname(os.path.abspath(__file__))
-        ruta_assets = ruta_bd
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    ruta_bd = base_dir
+    ruta_assets = base_dir
     return ruta_bd, ruta_assets
 
 
@@ -69,6 +65,7 @@ class PantallaLogin(ctk.CTk):
         self.title("Sistema Médico - Acceso")
         self.geometry("450x600") 
         self.resizable(False, False)
+        self.ruta_db = RUTA_DB
         
         ctk.set_appearance_mode("Light") 
         self.configure(fg_color="#EBF2F7") 
@@ -100,6 +97,7 @@ class PantallaLogin(ctk.CTk):
 
         ruta_script = os.path.dirname(__file__)
         ruta_logo = os.path.join(ruta_script, "logo.png")
+        self.usuarios_repo = UsuariosRepository(self.ruta_db)
 
         if os.path.exists(ruta_logo):
             try:
@@ -198,16 +196,13 @@ class PantallaLogin(ctk.CTk):
         self.lbl_footer.pack(side="bottom", pady=15)
 
         self.bind('<Return>', lambda event: self.validar_acceso())
+
     def validar_acceso(self):
         usuario_ingresado = self.txt_usuario.get().upper()
         password = self.txt_password.get()
 
         try:
-            user_data = login(
-                RUTA_DB,
-                usuario_ingresado,
-                password
-            )
+            user_data = self.usuarios_repo.login(usuario_ingresado, password)
 
             if user_data:
 
@@ -215,7 +210,7 @@ class PantallaLogin(ctk.CTk):
                     messagebox.showerror(
                         "Acceso Denegado",
                         "Tu cuenta no tiene permisos para acceder."
-                    )  
+                    )
                     return
 
                 self.login_exitoso = True
@@ -252,7 +247,8 @@ class VentanaPrincipal(ctk.CTk):
 
         self.ruta_db = os.path.join(RUTA_BASE_DB, "db", "sistema_medico.db")
         self.pacientes_repo = PacientesRepository(self.ruta_db)
-
+        self.usuarios_repo = UsuariosRepository(self.ruta_db)
+        self.catalogos_repo = CatalogosRepository(self.ruta_db)
 
         try:
             ruta_img = os.path.join(RUTA_ASSETS, "fondo_medico.png")
@@ -298,7 +294,7 @@ class VentanaPrincipal(ctk.CTk):
         self.quit()
 
     # ==============================================================================
-    # MÓDULOS DEL SISTEMA
+    # CLASE DEL SISTEMA
     # ==============================================================================
     
     def abrir_registro_pacientes(self):
@@ -457,41 +453,45 @@ class VentanaPrincipal(ctk.CTk):
                 if lista_parroquias:
                     c_p.set(lista_parroquias[0]); cargar_comu()
                 else:
-                    c_p.set("Sin registros"); c_c.configur23e(values=[]); c_c.set("Sin registros")
+                    c_p.set("Sin registros"); c_c.configure(values=[]); c_c.set("Sin registros")
 
+        
         try:
-            self.conn_p = sqlite3.connect(self.ruta_db)
-            self.cursor_p = self.conn_p.cursor()
             
-            self.cursor_p.execute("SELECT nombre FROM estados")
-            lista_estados = [row[0] for row in self.cursor_p.fetchall()]
+            lista_estados = self.catalogos_repo.obtener_estados()
+
             if lista_estados:
                 cbo_lugar.configure(values=lista_estados)
                 cbo_lugar.set(lista_estados[0])
             else:
-                cbo_lugar.configure(values=["Sin registros"]); cbo_lugar.set("Sin registros")
-                
-            self.cursor_p.execute("SELECT descripcion FROM consultas") 
-            lista_consultas = [row[0] for row in self.cursor_p.fetchall()]
+                cbo_lugar.configure(values=["Sin registros"])
+                cbo_lugar.set("Sin registros")
+
+            lista_consultas = self.catalogos_repo.obtener_consultas()
+
             if lista_consultas:
                 c_consulta.configure(values=lista_consultas)
                 c_consulta.set(lista_consultas[0])
             else:
-                c_consulta.configure(values=["General"]); c_consulta.set("General")
-                
-            c_m.configure(command=cargar_parro)
-            c_p.configure(command=cargar_comu)
-            
-            self.cursor_p.execute("SELECT descripcion, cod_muni FROM municipio")
-            for d, c in self.cursor_p.fetchall(): self.dict_m[d] = c
-            
+                c_consulta.configure(values=["General"])
+                c_consulta.set("General")
+
+            self.dict_m.clear()
+
+            for d, c in self.catalogos_repo.obtener_municipios():
+                self.dict_m[d] = c
+
             muni_values = list(self.dict_m.keys())
+
+            c_m.configure(values=muni_values)
+
             if muni_values:
-                c_m.configure(values=muni_values)
                 c_m.set(muni_values[0])
-                cargar_parro() 
+                cargar_parro()
+
         except Exception as e:
-            pass
+            print("Error cargando catálogos:", e)
+
 
         def cargar_bd():
             dialogo_busqueda = ctk.CTkToplevel(ventana_pac)
@@ -646,19 +646,40 @@ class VentanaPrincipal(ctk.CTk):
                 fecha_nac_sqlite = cal_fecha_nac.get_date().strftime("%Y-%m-%d")
                 cedula_completa = f"{cbo_nac.get()}-{txt_cedula.get()}"
                 direccion_texto = txt_direccion.get("0.0", tk.END).strip()
-                conn = sqlite3.connect(self.ruta_db)
-                cursor = conn.cursor()
-                sql = """UPDATE pacientes SET 
-                         apellidos=?, nombres=?, cedula=?, fecha_nac=?, lugar_nac=?, sexo=?, 
-                         municipio=?, parroquia=?, comunidad=?, direccion=?, condicion=?, telefono=?, consulta=?, fecha_registro=?
-                         WHERE id=?"""
-                valores = (txt_apellidos.get(), txt_nombres.get(), cedula_completa, fecha_nac_sqlite, cbo_lugar.get(), cbo_sexo.get(),
-                           c_m.get(), c_p.get(), c_c.get(), direccion_texto, cbo_condicion.get(), txt_telefono.get(), c_consulta.get(), fecha_reg_sqlite,
-                           ventana_pac.paciente_actual_id)
-                cursor.execute(sql, valores)
-                conn.commit(); conn.close()
+                
+                if self.pacientes_repo.existe_cedula_excluyendo_id(
+                    cedula_completa,
+                    ventana_pac.paciente_actual_id
+                    ):
+                    messagebox.showwarning("Duplicado", "La cédula ya existe.")
+                    return
+                
+                valores = (
+                    txt_apellidos.get(),
+                    txt_nombres.get(),
+                    cedula_completa,
+                    fecha_nac_sqlite,
+                    cbo_lugar.get(),
+                    cbo_sexo.get(),
+                    c_m.get(),
+                    c_p.get(),
+                    c_c.get(),
+                    direccion_texto,
+                    cbo_condicion.get(),
+                    txt_telefono.get(),
+                    c_consulta.get(),
+                    fecha_reg_sqlite
+                )
+
+                self.pacientes_repo.actualizar(
+                    ventana_pac.paciente_actual_id,
+                    valores
+                )
+
                 messagebox.showinfo("Éxito", "Registro modificado.")
-            except Exception as e: pass
+            
+            except Exception as e:
+                print("ERROR:", e)
 
         def eliminar_bd():
             if self.rol_usuario != "ADMIN": return
@@ -666,10 +687,8 @@ class VentanaPrincipal(ctk.CTk):
             resp = messagebox.askyesno("Confirmar", "¿Eliminar paciente?")
             if not resp: return
             try:
-                conn = sqlite3.connect(self.ruta_db)
-                cursor = conn.cursor()
-                cursor.execute("DELETE FROM pacientes WHERE id=?", (ventana_pac.paciente_actual_id,))
-                conn.commit(); conn.close()
+                
+                self.pacientes_repo.eliminar(ventana_pac.paciente_actual_id)
                 messagebox.showinfo("Éxito", "Eliminado.")
                 ventana_pac.paciente_actual_id = None
                 txt_apellidos.delete(0, tk.END); txt_nombres.delete(0, tk.END); txt_cedula.delete(0, tk.END)
@@ -758,16 +777,17 @@ class VentanaPrincipal(ctk.CTk):
         tabla.bind("<Button-3>", al_click_derecho)
 
         try:
-            conn = sqlite3.connect(self.ruta_db)
-            cursor = conn.cursor()
-            cursor.execute("SELECT cedula, apellidos, nombres, fecha_registro, telefono, consulta FROM pacientes")
+            rows = self.pacientes_repo.obtener_resumen()
+
             contador = 0
-            for r in cursor.fetchall(): 
-                if contador % 2 == 0: tabla.insert("", tk.END, values=tuple(r), tags=('par',))
-                else: tabla.insert("", tk.END, values=tuple(r), tags=('impar',))
-                contador += 1
-            conn.close()
-        except: pass
+            for r in rows:
+                if contador % 2 == 0:
+                    tabla.insert("", tk.END, values=r, tags=('par',))
+                else:
+                    tabla.insert("", tk.END, values=r, tags=('impar',))
+                    contador += 1
+        except Exception as e:
+                print("ERROR:", e)
         
         ctk.CTkButton(ventana_proc, text="Cerrar", command=ventana_proc.destroy, width=150).pack(pady=15)
 
@@ -797,12 +817,14 @@ class VentanaPrincipal(ctk.CTk):
             tabla_usu.delete(*tabla_usu.get_children())
 
             try:
-                rows = usuarios_repo.obtener_todos(self.ruta_db)
+                rows = self.usuarios_repo.obtener_todos()
 
                 for r in rows:
                     tabla_usu.insert("", tk.END, values=r)
                     
-            except: pass
+            except Exception as e:
+                print("ERROR cargando Usuarios;", e)
+
         cargar_usuarios()
 
         frame_form = ctk.CTkFrame(vent_usu, width=250)
@@ -837,31 +859,21 @@ class VentanaPrincipal(ctk.CTk):
                 return
 
             try:
-                conn = sqlite3.connect(self.ruta_db)
-                c = conn.cursor()
-                c.execute("SELECT usuario FROM usuarios WHERE usuario = ?", (u,))
-                existe = c.fetchone()
+                existe = self.usuarios_repo.existe_usuario(u)
 
-                if existe: 
-                    
-                    if p: 
-                        c.execute("UPDATE usuarios SET clave=?, rol=?, acceso=? WHERE usuario=?", (p, rol, acc, u))
-                    else: 
-                        c.execute("UPDATE usuarios SET rol=?, acceso=? WHERE usuario=?", (rol, acc, u))
+                if existe:
+                    self.usuarios_repo.actualizar_usuario(u, p, rol, acc)
                     accion_msg = "actualizado"
-                else: 
-                    
-                    if not p: 
-                        messagebox.showwarning("Atención", "Debe asignar una contraseña para el nuevo usuario.", parent=vent_usu)
-                        conn.close()
+                else:
+                    if not p:
+                        messagebox.showwarning("Atención", "Debe asignar una contraseña.")
                         return
-                    c.execute("INSERT INTO usuarios (usuario, clave, rol, acceso) VALUES (?, ?, ?, ?)", (u, p, rol, acc))
+                    self.usuarios_repo.crear_usuario(u, p, rol, acc)
                     accion_msg = "registrado"
-                
-                conn.commit(); conn.close()
-                txt_u.delete(0, tk.END); txt_p.delete(0, tk.END)
+
+                txt_u.delete(0, tk.END)
+                txt_p.delete(0, tk.END)
                 cargar_usuarios()
-                
                 
                 messagebox.showinfo("Éxito", f"Usuario '{u}' {accion_msg} correctamente con acceso {acc}.", parent=vent_usu)
 
@@ -896,13 +908,11 @@ class VentanaPrincipal(ctk.CTk):
 
             if messagebox.askyesno("Confirmar Eliminación", f"¿Está seguro que desea eliminar permanentemente al usuario '{u}'?", parent=vent_usu):
                 try:
-                    conn = sqlite3.connect(self.ruta_db)
-                    c = conn.cursor()
-                    c.execute("DELETE FROM usuarios WHERE usuario = ?", (u,))
-                    conn.commit(); conn.close(); 
+                    self.usuarios_repo.eliminar_usuario(u)
+
                     cargar_usuarios()
-                    txt_u.delete(0, tk.END); txt_p.delete(0, tk.END)
-                    
+                    txt_u.delete(0, tk.END)
+                    txt_p.delete(0, tk.END)
                     
                     messagebox.showinfo("Eliminado", f"El usuario '{u}' ha sido eliminado exitosamente.", parent=vent_usu)
                 except Exception as e: 
