@@ -12,6 +12,9 @@ from tkcalendar import DateEntry
 from datetime import date, datetime
 import os
 import sys
+from repositories.usuarios_repository import login
+from repositories import usuarios_repository as usuarios_repo
+from repositories.pacientes_repository import PacientesRepository
 
 # ==============================================================================
 # GESTIÓN DE RUTAS PARA PYINSTALLER (EJECUTABLE)
@@ -27,59 +30,32 @@ def obtener_rutas():
         ruta_assets = ruta_bd
     return ruta_bd, ruta_assets
 
+
 RUTA_BASE_DB, RUTA_ASSETS = obtener_rutas()
+RUTA_DB = os.path.join(RUTA_BASE_DB, "db", "sistema_medico.db")
 
 # ==============================================================================
 # FILTRO PARA SILENCIAR ERRORES FANTASMAS DE CUSTOMTKINTER
 # ==============================================================================
-def silenciar_errores_tk(exc, val, tb):
-    mensaje_error = str(val)
-    if "invalid command name" in mensaje_error and ("check_dpi_scaling" in mensaje_error or "update" in mensaje_error):
-        pass 
-    else:
-        traceback.print_exception(exc, val, tb)
+def silenciar_errores_tk(*args):
+    try:
+        exc, val, tb = args[:3]
+        mensaje_error = str(val)
 
-tk.Tk.report_callback_exception = silenciar_errores_tk
+        if "invalid command name" in mensaje_error:
+            return
+        else:
+            traceback.print_exception(exc, val, tb)
+    except:
+        pass
 
 # ==============================================================================
-# CONFIGURACIÓN GLOBAL Y CREACIÓN DE BASE DE DATOS LOCAL
+# CONFIGURACIÓN GLOBAL Y CARGA DE BASE DE DATOS LOCAL
 # ==============================================================================
 ctk.set_appearance_mode("Light")  
 ctk.set_default_color_theme("blue")
 
-def inicializar_bd():
-    ruta_db = os.path.join(RUTA_BASE_DB, "sistema_medico.db")
-    conn = sqlite3.connect(ruta_db)
-    c = conn.cursor()
-    
-    c.execute('''CREATE TABLE IF NOT EXISTS usuarios (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    usuario TEXT UNIQUE, clave TEXT,
-                    rol TEXT DEFAULT 'GUEST', acceso TEXT DEFAULT 'PERMITIDO'
-                )''')
-                
-    c.execute('''CREATE TABLE IF NOT EXISTS pacientes (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    apellidos TEXT, nombres TEXT, cedula TEXT UNIQUE,
-                    fecha_nac TEXT, lugar_nac TEXT, sexo TEXT,
-                    municipio TEXT, parroquia TEXT, comunidad TEXT,
-                    direccion TEXT, condicion TEXT, telefono TEXT,
-                    consulta TEXT, fecha_registro TEXT
-                )''')
-
-    c.execute('CREATE TABLE IF NOT EXISTS estados (nombre TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS municipio (cod_muni INTEGER, descripcion TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS parroquia (cod_parro INTEGER, cod_muni INTEGER, descripcion TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS comunidad (cod_com INTEGER, cod_parro INTEGER, descripcion TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS consultas (descripcion TEXT)')
-
-    c.execute("SELECT count(*) FROM usuarios")
-    if c.fetchone()[0] == 0:
-        c.execute("INSERT INTO usuarios (usuario, clave, rol, acceso) VALUES ('ADMIN', '1234', 'ADMIN', 'PERMITIDO')")
-
-    conn.commit()
-    conn.close()
-
+from db.init_db import inicializar_bd
 inicializar_bd()
 
 # ==============================================================================
@@ -102,10 +78,10 @@ class PantallaLogin(ctk.CTk):
         y = (self.winfo_screenheight() // 2) - (600 // 2)
         self.geometry(f"+{x}+{y}")
 
+        self.ruta_base_db = RUTA_BASE_DB
         self.login_exitoso = False
         self.usuario_validado = ""
         self.rol_validado = ""
-        self.conexion_login = self.conectar_bd()
 
         # --- DISEÑO DE LA INTERFAZ ---
 
@@ -222,44 +198,38 @@ class PantallaLogin(ctk.CTk):
         self.lbl_footer.pack(side="bottom", pady=15)
 
         self.bind('<Return>', lambda event: self.validar_acceso())
-
-
-    def conectar_bd(self):
-        try:
-            ruta_db = os.path.join(RUTA_BASE_DB, "sistema_medico.db")
-            conn = sqlite3.connect(ruta_db)
-            conn.row_factory = sqlite3.Row
-            return conn
-        except sqlite3.Error as err:
-            messagebox.showerror("Error", f"No se pudo conectar a la base de datos:\n{err}")
-            self.destroy()
-            return None
-
     def validar_acceso(self):
         usuario_ingresado = self.txt_usuario.get().upper()
         password = self.txt_password.get()
+
         try:
-            cursor = self.conexion_login.cursor()
-            sql = "SELECT * FROM usuarios WHERE usuario = ? AND clave = ?"
-            cursor.execute(sql, (usuario_ingresado, password))
-            user_data = cursor.fetchone()
-            
+            user_data = login(
+                RUTA_DB,
+                usuario_ingresado,
+                password
+            )
+
             if user_data:
+
                 if user_data['acceso'] == 'DENEGADO':
-                    messagebox.showerror("Acceso Denegado", "Tu cuenta no tiene permisos para acceder.")
+                    messagebox.showerror(
+                        "Acceso Denegado",
+                        "Tu cuenta no tiene permisos para acceder."
+                    )  
                     return
 
-                self.conexion_login.close()
                 self.login_exitoso = True
                 self.usuario_validado = user_data['usuario']
                 self.rol_validado = user_data['rol']
-                self.withdraw()  
-                self.quit()      
+
+                self.destroy()
+
             else:
                 messagebox.showerror("Error", "Usuario o clave incorrectos")
                 self.txt_password.delete(0, tk.END)
-        except sqlite3.Error as err:
-            messagebox.showerror("Error SQL", str(err))
+
+        except Exception as err:
+            messagebox.showerror("Error", str(err))
 
 # ==============================================================================
 # CLASE 2: VENTANA PRINCIPAL
@@ -270,7 +240,7 @@ class VentanaPrincipal(ctk.CTk):
         
         self.nombre_usuario = nombre_usuario 
         self.rol_usuario = rol_usuario
-        self.cerrar_sesion_flag = False 
+        self.cerrar_sesion_flag = False
         
         self.title(f"---> USUARIO: {self.nombre_usuario} | PERFIL: {self.rol_usuario}")
         self.geometry("850x600")
@@ -280,7 +250,9 @@ class VentanaPrincipal(ctk.CTk):
         y = (self.winfo_screenheight() // 2) - (600 // 2)
         self.geometry(f"+{x}+{y}")
 
-        self.ruta_db = os.path.join(RUTA_BASE_DB, "sistema_medico.db")
+        self.ruta_db = os.path.join(RUTA_BASE_DB, "db", "sistema_medico.db")
+        self.pacientes_repo = PacientesRepository(self.ruta_db)
+
 
         try:
             ruta_img = os.path.join(RUTA_ASSETS, "fondo_medico.png")
@@ -288,7 +260,8 @@ class VentanaPrincipal(ctk.CTk):
             self.fondo_ctk = ctk.CTkImage(light_image=img_original, dark_image=img_original, size=(850, 600))
             label_fondo = ctk.CTkLabel(self, image=self.fondo_ctk, text="")
             label_fondo.place(x=0, y=0, relwidth=1, relheight=1)
-        except: pass
+        except Exception as e:
+                print("ERROR:", e)
 
         # ==============================================================================
         # MENU SUPERIOR DINÁMICO
@@ -484,7 +457,7 @@ class VentanaPrincipal(ctk.CTk):
                 if lista_parroquias:
                     c_p.set(lista_parroquias[0]); cargar_comu()
                 else:
-                    c_p.set("Sin registros"); c_c.configure(values=[]); c_c.set("Sin registros")
+                    c_p.set("Sin registros"); c_c.configur23e(values=[]); c_c.set("Sin registros")
 
         try:
             self.conn_p = sqlite3.connect(self.ruta_db)
@@ -553,12 +526,7 @@ class VentanaPrincipal(ctk.CTk):
                 dialogo_busqueda.destroy() 
                 
                 try:
-                    conn = sqlite3.connect(self.ruta_db)
-                    conn.row_factory = sqlite3.Row
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT * FROM pacientes WHERE cedula = ?", (ced_busc,))
-                    paciente = cursor.fetchone()
-                    conn.close()
+                    paciente = self.pacientes_repo.buscar_por_cedula(ced_busc)
                     
                     if paciente:
                         ventana_pac.paciente_actual_id = paciente['id']
@@ -636,26 +604,39 @@ class VentanaPrincipal(ctk.CTk):
                 cedula_completa = f"{cbo_nac.get()}-{txt_cedula.get()}"
                 direccion_texto = txt_direccion.get("0.0", tk.END).strip()
 
-                conn = sqlite3.connect(self.ruta_db)
-                cursor = conn.cursor()
-                cursor.execute("SELECT id FROM pacientes WHERE cedula = ?", (cedula_completa,))
-                if cursor.fetchone():
-                    messagebox.showwarning("Duplicado", "La cédula ya está registrada.")
-                    conn.close(); return 
+                if self.pacientes_repo.existe_cedula(cedula_completa):
+                    messagebox.showwarning(
+                        "Duplicado",
+                        "La cédula ya está registrada."
+                    )
+                    return
+
+                valores = (
+                    txt_apellidos.get(),
+                    txt_nombres.get(),
+                    cedula_completa,
+                    fecha_nac_sqlite,
+                    cbo_lugar.get(),
+                    cbo_sexo.get(),
+                    c_m.get(),
+                    c_p.get(),
+                    c_c.get(),
+                    direccion_texto,
+                    cbo_condicion.get(),
+                    txt_telefono.get(),
+                    c_consulta.get(),
+                    fecha_reg_sqlite
+                )
+
+                self.pacientes_repo.insertar(valores)
+
                 
-                sql = """INSERT INTO pacientes 
-                         (apellidos, nombres, cedula, fecha_nac, lugar_nac, sexo, 
-                          municipio, parroquia, comunidad, direccion, condicion, telefono, consulta, fecha_registro) 
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
-                valores = (txt_apellidos.get(), txt_nombres.get(), cedula_completa, fecha_nac_sqlite, cbo_lugar.get(), cbo_sexo.get(),
-                           c_m.get(), c_p.get(), c_c.get(), direccion_texto, cbo_condicion.get(), txt_telefono.get(), c_consulta.get(), fecha_reg_sqlite)
-                cursor.execute(sql, valores)
-                conn.commit(); conn.close()
                 messagebox.showinfo("Éxito", "Guardado exitosamente.")
                 ventana_pac.paciente_actual_id = None
                 txt_apellidos.delete(0, tk.END); txt_nombres.delete(0, tk.END); txt_cedula.delete(0, tk.END)
                 txt_telefono.delete(0, tk.END); txt_direccion.delete("0.0", tk.END)
-            except Exception as e: pass
+            except Exception as e:
+                print("ERROR:", e)
 
         def modificar_bd():
             if self.rol_usuario != "ADMIN": return
@@ -814,12 +795,13 @@ class VentanaPrincipal(ctk.CTk):
 
         def cargar_usuarios():
             tabla_usu.delete(*tabla_usu.get_children())
+
             try:
-                conn = sqlite3.connect(self.ruta_db)
-                c = conn.cursor()
-                c.execute("SELECT usuario, rol, acceso FROM usuarios")
-                for r in c.fetchall(): tabla_usu.insert("", tk.END, values=tuple(r))
-                conn.close()
+                rows = usuarios_repo.obtener_todos(self.ruta_db)
+
+                for r in rows:
+                    tabla_usu.insert("", tk.END, values=r)
+                    
             except: pass
         cargar_usuarios()
 
@@ -1112,7 +1094,6 @@ if __name__ == "__main__":
         if app_log.login_exitoso:
             usuario = app_log.usuario_validado
             rol = app_log.rol_validado
-            app_log.destroy() 
             if not abrir_sistema_principal(usuario, rol):
                 break
         else:
