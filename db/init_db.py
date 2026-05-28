@@ -1,6 +1,11 @@
 import sqlite3
 import os
 
+RUTA_DB = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "sistema_medico.db"
+)
+
 def inicializar_bd():
     ruta_base = os.path.dirname(os.path.abspath(__file__))
     ruta_db = os.path.join(ruta_base, "sistema_medico.db")

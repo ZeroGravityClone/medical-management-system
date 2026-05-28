@@ -12,9 +12,49 @@ from tkcalendar import DateEntry
 from datetime import date, datetime
 import os
 import sys
+from PySide6.QtWidgets import QApplication
+from ui_qt.login import LoginWindow
+from ui_qt.main_window import VentanaPrincipal
+from ui_qt.theme import apply_dark_theme
 from repositories.usuarios_repository import UsuariosRepository
 from repositories.pacientes_repository import PacientesRepository
 from repositories.catalogos_repository import CatalogosRepository
+from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QMessageBox
+
+
+# ==============================================================================
+# UI en PySide6
+# ==============================================================================
+
+class Controller:
+    def __init__(self):
+        self.login = LoginWindow()
+        self.login.show()
+
+        self.login.btn_login.clicked.connect(self.check_login)
+
+    def check_login(self):
+        if self.login.login_exitoso:
+
+            user = self.login.usuario_validado
+            rol = self.login.rol_validado
+
+            self.login.close()
+
+            self.main = VentanaPrincipal(user, rol)
+            self.main.show()
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+
+    # 🌑 ACTIVAR DARK MODE GLOBAL
+    apply_dark_theme(app)
+
+    controller = Controller()
+
+    sys.exit(app.exec())
 
 # ==============================================================================
 # GESTIÓN DE RUTAS PARA PYINSTALLER (EJECUTABLE)
@@ -198,8 +238,8 @@ class PantallaLogin(ctk.CTk):
         self.bind('<Return>', lambda event: self.validar_acceso())
 
     def validar_acceso(self):
-        usuario_ingresado = self.txt_usuario.get().upper()
-        password = self.txt_password.get()
+        usuario_ingresado = self.txt_usuario.text().upper()
+        password = self.txt_password.text()
 
         try:
             user_data = self.usuarios_repo.login(usuario_ingresado, password)
@@ -207,91 +247,43 @@ class PantallaLogin(ctk.CTk):
             if user_data:
 
                 if user_data['acceso'] == 'DENEGADO':
-                    messagebox.showerror(
+                    QMessageBox.critical(
+                        self,
                         "Acceso Denegado",
                         "Tu cuenta no tiene permisos para acceder."
                     )
                     return
+                
+                print("✔ ABRIENDO VENTANA PRINCIPAL")
 
                 self.login_exitoso = True
                 self.usuario_validado = user_data['usuario']
                 self.rol_validado = user_data['rol']
 
-                self.destroy()
+                self.main = VentanaPrincipal(user_data["usuario"], user_data["rol"])
+                self.main.show()
+
+                self.close()
 
             else:
-                messagebox.showerror("Error", "Usuario o clave incorrectos")
-                self.txt_password.delete(0, tk.END)
+                QMessageBox.warning(self, "Error", "Usuario o clave incorrectos")
+                self.txt_password.clear()
 
         except Exception as err:
-            messagebox.showerror("Error", str(err))
+            QMessageBox.critical(self, "Error", str(err))
 
 # ==============================================================================
 # CLASE 2: VENTANA PRINCIPAL
 # ==============================================================================
-class VentanaPrincipal(ctk.CTk):
-    def __init__(self, nombre_usuario, rol_usuario):
-        super().__init__()
-        
-        self.nombre_usuario = nombre_usuario 
-        self.rol_usuario = rol_usuario
-        self.cerrar_sesion_flag = False
-        
-        self.title(f"---> USUARIO: {self.nombre_usuario} | PERFIL: {self.rol_usuario}")
-        self.geometry("850x600")
-        
-        self.update_idletasks()
-        x = (self.winfo_screenwidth() // 2) - (850 // 2)
-        y = (self.winfo_screenheight() // 2) - (600 // 2)
-        self.geometry(f"+{x}+{y}")
 
-        self.ruta_db = os.path.join(RUTA_BASE_DB, "db", "sistema_medico.db")
-        self.pacientes_repo = PacientesRepository(self.ruta_db)
-        self.usuarios_repo = UsuariosRepository(self.ruta_db)
-        self.catalogos_repo = CatalogosRepository(self.ruta_db)
+    if __name__ == "__main__":
+        app = QApplication(sys.argv)
 
-        try:
-            ruta_img = os.path.join(RUTA_ASSETS, "fondo_medico.png")
-            img_original = Image.open(ruta_img)
-            self.fondo_ctk = ctk.CTkImage(light_image=img_original, dark_image=img_original, size=(850, 600))
-            label_fondo = ctk.CTkLabel(self, image=self.fondo_ctk, text="")
-            label_fondo.place(x=0, y=0, relwidth=1, relheight=1)
-        except Exception as e:
-                print("ERROR:", e)
+        login = LoginWindow()
+        login.show()
 
-        # ==============================================================================
-        # MENU SUPERIOR DINÁMICO
-        # ==============================================================================
-        barra_menus = tk.Menu(self)
-        self.config(menu=barra_menus)
-        
-        menu_archivos = tk.Menu(barra_menus, tearoff=0)
-        menu_archivos.add_command(label="Registro de Pacientes", command=self.abrir_registro_pacientes)
-        menu_archivos.add_command(label="Lista de Pacientes", command=self.abrir_proceso_datos)
-        menu_archivos.add_separator()
-        menu_archivos.add_command(label="Cerrar Sesión", command=self.cerrar_sesion)
-        barra_menus.add_cascade(label="Archivos", menu=menu_archivos)
-        
-        if self.rol_usuario == "ADMIN":
-            menu_admin = tk.Menu(barra_menus, tearoff=0)
-            menu_admin.add_command(label="Gestión de Usuarios", command=self.abrir_gestion_usuarios)
-            barra_menus.add_cascade(label="Administrador", menu=menu_admin)
-        
-        menu_herr = tk.Menu(barra_menus, tearoff=0)
-        menu_herr.add_command(label="Calculadora", command=self.abrir_calculadora)
-        menu_herr.add_command(label="🤖 Asistente IA (Groq)", command=self.abrir_asistente_ia)
-        
-        barra_menus.add_cascade(label="Herramientas", menu=menu_herr)
+        sys.exit(app.exec())
 
-        menu_ayuda = tk.Menu(barra_menus, tearoff=0)
-        menu_ayuda.add_command(label="Acerca de", command=self.abrir_acerca_de)
-        barra_menus.add_cascade(label="Ayuda", menu=menu_ayuda)
-        
-        barra_menus.add_command(label="Cerrar Sesión", command=self.cerrar_sesion)
-
-    def cerrar_sesion(self):
-        self.cerrar_sesion_flag = True
-        self.quit()
 
     # ==============================================================================
     # CLASE DEL SISTEMA
