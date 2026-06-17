@@ -1,0 +1,104 @@
+/* ========================================================================
+   ESTILO MOONLIGHT QT para Sistema Médico (PySide6)
+   ======================================================================== */
+
+/* Configuración Base */
+QWidget {
+    background-color: #111218;
+    color: #e2e4f0;
+    font-family: "Segoe UI", "DejaVu Sans", sans-serif;
+    font-size: 13px;
+}
+
+/* Ventanas */
+QMainWindow, QDialog {
+    background-color: #111218;
+}
+
+/* Contenedores de tarjetas / Marcos */
+QFrame {
+    background-color: #181a23;
+    border-radius: 12px;
+    border: 1px solid #2f3352;
+}
+
+/* Entradas de Texto (Campos de Login) */
+QLineEdit {
+    background-color: #1e202f;
+    border: 1px solid #2f3352;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #e2e4f0;
+}
+
+QLineEdit:focus {
+    border: 1px solid #7078f4;
+}
+
+/* Botones */
+QPushButton {
+    background-color: #7078f4;
+    color: #111218;
+    border: 1px solid #7078f4;
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #5c63db;
+    border-color: #5c63db;
+}
+
+QPushButton:pressed {
+    background-color: #494fad;
+}
+
+/* Etiquetas */
+QLabel {
+    color: #e2e4f0;
+    background-color: transparent;
+}
+
+/* Menú Superior (MenuBar) */
+QMenuBar {
+    background-color: #181a23;
+    border-bottom: 1px solid #2f3352;
+}
+
+QMenuBar::item {
+    background-color: transparent;
+    padding: 6px 12px;
+    color: #e2e4f0;
+}
+
+QMenuBar::item:selected {
+    background-color: #212433;
+    color: #7078f4;
+}
+
+QMenu {
+    background-color: #181a23;
+    border: 1px solid #2f3352;
+}
+
+QMenu::item {
+    padding: 6px 20px;
+    color: #e2e4f0;
+}
+
+QMenu::item:selected {
+    background-color: #7078f4;
+    color: #111218;
+}
+
+/* Mensajes de Alerta (MessageBox) */
+QMessageBox {
+    background-color: #111218;
+    color: #e2e4f0;
+}
+
+QMessageBox QPushButton {
+    min-width: 80px;
+    padding: 5px 15px;
+}
