@@ -1,23 +1,21 @@
-import json
-import ssl
-import urllib.request
-import urllib.error
+import os
+from dotenv import load_dotenv
 from groq import Groq
-from PySide6.QtCore import QObject, Signal
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout,
-    QTextEdit, QLineEdit, QPushButton,
-    QScrollArea, QWidget, QLabel
+    QLineEdit, QPushButton, QScrollArea, 
+    QWidget, QLabel
 )
 from PySide6.QtCore import Qt, Signal, QObject, QThread
 
+# Cargar variables de entorno del archivo .env
+load_dotenv()
 
 # =========================
 # WORKER (HILO SEGURO)
 # =========================
 class IAWorker(QObject):
-
     respuesta_lista = Signal(str)
     finished = Signal()
 
@@ -26,16 +24,20 @@ class IAWorker(QObject):
         self.pregunta = pregunta
 
     def run(self):
-        
         try:
-            #API DE IA
+            api_key = os.getenv("GROQ_API_KEY")
+            
+            if not api_key:
+                raise ValueError("No se encontró la clave de API (GROQ_API_KEY) en el entorno.")
+
+            client = Groq(api_key=api_key)
 
             completion = client.chat.completions.create(
                 model="llama-3.1-8b-instant",
                 messages=[
                     {
                         "role": "system",
-                        "content": "Eres un asistente médico profesional. Responde claro y ético."
+                        "content": "Eres un asistente médico profesional para un sistema de gestión. Responde claro, formal y ético."
                     },
                     {
                         "role": "user",
@@ -71,19 +73,19 @@ class AsistenteIADialog(QDialog):
 
         self.add_message(
             "IA",
-            "Hola 👋 Soy tu asistente médico conectado a Groq. ¿En qué puedo ayudarte?"
+            "Hola 👋 Soy tu asistente médico conectado a Groq de forma segura. ¿En qué puedo ayudarte?"
         )
 
         self.thread = None
         self.worker = None
 
     # ================= UI =================
-
     def build_ui(self):
-
         main = QVBoxLayout(self)
 
         self.chat_area = QVBoxLayout()
+        # Alineación superior para que los mensajes no se distribuyan verticalmente
+        self.chat_area.setAlignment(Qt.AlignTop) 
 
         self.chat_container = QWidget()
         self.chat_container.setLayout(self.chat_area)
@@ -108,67 +110,92 @@ class AsistenteIADialog(QDialog):
 
         main.addLayout(bottom)
 
+        # Estilo local adaptado a la estética Moonlight
         self.setStyleSheet("""
-        QDialog{ background:#0f172a; }
-
-        QLineEdit{
-            background:#1f2937;
-            color:white;
-            border:1px solid #334155;
-            border-radius:8px;
-            padding:8px;
+        QDialog { 
+            background: #111218; 
         }
 
-        QPushButton{
-            background:#2563eb;
-            color:white;
-            padding:8px;
-            border-radius:8px;
-            font-weight:bold;
+        QScrollArea {
+            border: 1px solid #2f3352;
+            border-radius: 8px;
+            background: #181a23;
         }
 
-        QPushButton:hover{
-            background:#1d4ed8;
+        QWidget#chat_container {
+            background: #181a23;
+        }
+
+        QLineEdit {
+            background: #1e202f;
+            color: #e2e4f0;
+            border: 1px solid #2f3352;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        QLineEdit:focus {
+            border: 1px solid #7078f4;
+        }
+
+        QPushButton {
+            background: #7078f4;
+            color: #111218;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        QPushButton:hover {
+            background: #5c63db;
+        }
+        
+        QPushButton:disabled {
+            background: #2f3352;
+            color: #8a8fbc;
         }
         """)
 
     # ================= CHAT =================
-
     def add_message(self, role, text):
-
         label = QLabel()
+        # Habilitar envoltura de texto para evitar desbordes horizontales
+        label.setWordWrap(True) 
 
         if role == "USER":
-            label.setText(f"🧑 Tú:\n{text}")
-            label.setAlignment(Qt.AlignRight)
+            label.setText(f"🧑 **Tú**:\n{text}")
+            label.setAlignment(Qt.AlignLeft)
+            # Fondo azul-grisáceo medio (Moonlight Medium Dark)
             label.setStyleSheet("""
-                background:#1e293b;
-                color:white;
-                padding:10px;
-                border-radius:10px;
-                margin:5px;
+                background-color: #212433;
+                color: #e2e4f0;
+                padding: 12px;
+                border-radius: 10px;
+                margin: 5px 50px 5px 5px;
+                border: 1px solid #2f3352;
             """)
         else:
-            label.setText(f"🤖 IA:\n{text}")
+            label.setText(f"🤖 **IA**:\n{text}")
             label.setAlignment(Qt.AlignLeft)
+            # Fondo oscuro profundo con borde sutil violeta
             label.setStyleSheet("""
-                background:#111827;
-                color:#e5e7eb;
-                padding:10px;
-                border-radius:10px;
-                margin:5px;
+                background-color: #111218;
+                color: #e2e4f0;
+                padding: 12px;
+                border-radius: 10px;
+                margin: 5px 5px 5px 50px;
+                border: 1px solid #3e4491;
             """)
 
         self.chat_area.addWidget(label)
 
+        # Auto-scroll hacia el final de la conversación
         self.scroll.verticalScrollBar().setValue(
             self.scroll.verticalScrollBar().maximum()
         )
 
     # ================= ENVIAR =================
-
     def enviar(self):
-
         pregunta = self.input.text().strip()
         if not pregunta:
             return
@@ -179,7 +206,7 @@ class AsistenteIADialog(QDialog):
         self.btn.setEnabled(False)
         self.btn.setText("Pensando...")
 
-        # THREAD
+        # Inicialización del Hilo de Qt de manera segura
         self.thread = QThread()
         self.worker = IAWorker(pregunta)
         self.worker.moveToThread(self.thread)
@@ -194,21 +221,15 @@ class AsistenteIADialog(QDialog):
         self.thread.start()
 
     # ================= RESPUESTA UI (SEGURO) =================
-
     def mostrar_respuesta(self, texto):
-
         self.add_message("IA", texto)
-
         self.btn.setEnabled(True)
         self.btn.setText("Enviar")
 
     # ================= CENTRAR =================
-
     def center(self):
-
         screen = self.screen().geometry()
-
         self.move(
-            (screen.width()-self.width())//2,
-            (screen.height()-self.height())//2
+            (screen.width() - self.width()) // 2,
+            (screen.height() - self.height()) // 2
         )

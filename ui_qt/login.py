@@ -29,48 +29,6 @@ class LoginWindow(QWidget):
         self.usuario_validado = ""
         self.rol_validado = ""
 
-        # 🔥 MODO OSCURO GLOBAL
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #0f172a;
-                color: white;
-                font-family: Segoe UI;
-            }
-
-            QFrame {
-                background-color: #111827;
-                border-radius: 15px;
-                border: 1px solid #334155;
-            }
-
-            QLineEdit {
-                background-color: #1f2937;
-                border: 1px solid #334155;
-                border-radius: 8px;
-                padding: 10px;
-                color: white;
-            }
-
-            QLineEdit:focus {
-                border: 1px solid #3b82f6;
-            }
-
-            QPushButton {
-                background-color: #2563eb;
-                border-radius: 8px;
-                padding: 12px;
-                font-weight: bold;
-            }
-
-            QPushButton:hover {
-                background-color: #1d4ed8;
-            }
-
-            QLabel {
-                color: #e5e7eb;
-            }
-        """)
-
         # layout principal
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(20, 20, 20, 20)
@@ -119,15 +77,20 @@ class LoginWindow(QWidget):
         self.set_dark_title_bar()    
 
     def set_dark_title_bar(self):
-        hwnd = int(self.winId())
-        value = ctypes.c_int(1)
-
-        ctypes.windll.dwmapi.DwmSetWindowAttribute(
-            hwnd,
-            20,
-            ctypes.byref(value),
-            ctypes.sizeof(value)
-        )
+        # Solo ejecutar si el sistema operativo es Windows ('nt')
+        if os.name == 'nt':
+            try:
+                import ctypes
+                hwnd = int(self.winId())
+                value = ctypes.c_int(1)
+                ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                    hwnd,
+                    20,
+                    ctypes.byref(value),
+                    ctypes.sizeof(value)
+                )
+            except Exception as e:
+                print(f"No se pudo aplicar la barra oscura en Windows: {e}")
 
     # ---------------- LOGIN ----------------
     def validar_acceso(self):
