@@ -1,45 +1,67 @@
+# repositories/catalogos_repository.py
+
 import sqlite3
 
+
 class CatalogosRepository:
+
     def __init__(self, db_path):
         self.db_path = db_path
 
     def obtener_estados(self):
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            cur.execute("SELECT nombre FROM estados")
-            return [r[0] for r in cur.fetchall()]
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("SELECT nombre FROM estados ORDER BY nombre ASC")
+        data = [row[0] for row in c.fetchall()]
+        conn.close()
+        return data
 
     def obtener_consultas(self):
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            cur.execute("SELECT descripcion FROM consultas")
-            return [r[0] for r in cur.fetchall()]
-    
-    def obtener_municipios(self):
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            cur.execute("SELECT descripcion, cod_muni FROM municipio")
-            return cur.fetchall()
-        
-    def obtener_parroquias(self, cod_muni):
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            cur.execute("""
-                SELECT descripcion, cod_parro
-                FROM parroquia
-                WHERE cod_muni = ?
-            """, (cod_muni,))
-            return cur.fetchall()
-        
-    def obtener_comunidades(self, cod_parro):
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            cur.execute("""
-                SELECT descripcion, cod_com
-                FROM comunidad
-                WHERE cod_parro = ?
-            """, (cod_parro,))
-            return cur.fetchall()
-        
-    
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("SELECT descripcion FROM consultas ORDER BY descripcion ASC")
+        data = [row[0] for row in c.fetchall()]
+        conn.close()
+        return data
+
+    # === NUEVO: Obtener Municipios filtrados por Estado ===
+    def obtener_municipios_por_estado(self, estado_nombre):
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("""
+            SELECT descripcion, cod_muni 
+            FROM municipio 
+            WHERE estado_nombre = ? 
+            ORDER BY descripcion ASC
+        """, (estado_nombre.upper(),))
+        data = c.fetchall()
+        conn.close()
+        return data
+
+    # === Obtener Parroquias filtradas por Municipio ===
+    def obtener_parroquias_por_municipio(self, cod_muni):
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("""
+            SELECT descripcion, cod_parro 
+            FROM parroquia 
+            WHERE cod_muni = ? 
+            ORDER BY descripcion ASC
+        """, (cod_muni,))
+        data = c.fetchall()
+        conn.close()
+        return data
+
+    # === Obtener Comunidades filtradas por Parroquia ===
+    def obtener_comunidades_por_parroquia(self, cod_parro):
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("""
+            SELECT descripcion 
+            FROM comunidad 
+            WHERE cod_parro = ? 
+            ORDER BY descripcion ASC
+        """, (cod_parro,))
+        data = [row[0] for row in c.fetchall()]
+        conn.close()
+        return data

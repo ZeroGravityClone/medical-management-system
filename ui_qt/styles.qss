@@ -1,104 +1,136 @@
 /* ========================================================================
-   ESTILO MOONLIGHT QT para Sistema Médico (PySide6)
+   HOJA DE ESTILOS INSPIRADA EN MOONLIGHT QT - REFINAMIENTO DE LAYOUT
    ======================================================================== */
 
-/* Configuración Base */
 QWidget {
-    background-color: #111218;
-    color: #e2e4f0;
+    background-color: #212121;
+    color: #ffffff;
     font-family: "Segoe UI", "DejaVu Sans", sans-serif;
     font-size: 13px;
 }
 
-/* Ventanas */
-QMainWindow, QDialog {
-    background-color: #111218;
+/* Sidebar Izquierda */
+QFrame#Sidebar {
+    background-color: #171717;
+    border-right: 1px solid #2d2d2d;
 }
 
-/* Contenedores de tarjetas / Marcos */
-QFrame {
-    background-color: #181a23;
-    border-radius: 12px;
-    border: 1px solid #2f3352;
+QLabel#SidebarTitle {
+    color: #52a9ff;
+    font-size: 16px;
+    font-weight: bold;
+    padding-top: 8px;
+    padding-bottom: 12px;
 }
 
-/* Entradas de Texto (Campos de Login) */
-QLineEdit {
-    background-color: #1e202f;
-    border: 1px solid #2f3352;
+QFrame#SidebarDivider {
+    background-color: #2d2d2d;
+    max-height: 1px;
+    margin-bottom: 12px;
+}
+
+QLabel#SidebarSectionLabel {
+    color: #7d7d7d;
+    font-size: 11px;
+    font-weight: bold;
+    padding-top: 20px;
+    padding-bottom: 4px;
+    padding-left: 12px;
+}
+
+/* Botones del Sidebar (Refinados con paddings y tamaños estándar) */
+QPushButton#SidebarButton {
+    background-color: transparent;
+    color: #cbd5e1;
+    border: none;
     border-radius: 6px;
-    padding: 8px 12px;
-    color: #e2e4f0;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 16px; /* Desplazamiento controlado por CSS */
+    text-align: left;
+    min-height: 20px;
 }
 
-QLineEdit:focus {
-    border: 1px solid #7078f4;
+QPushButton#SidebarButton:hover {
+    background-color: #2d2d2d;
+    color: #52a9ff;
 }
 
-/* Botones */
-QPushButton {
-    background-color: #7078f4;
-    color: #111218;
-    border: 1px solid #7078f4;
+QPushButton#SidebarButton:pressed {
+    background-color: #1a1a1a;
+}
+
+QPushButton#SidebarLogoutButton {
+    background-color: transparent;
+    color: #ef4444;
+    border: none;
     border-radius: 6px;
-    padding: 10px 16px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 16px;
+    text-align: left;
+    font-weight: bold;
+    min-height: 20px;
+    margin-top: 8px;
+}
+
+QPushButton#SidebarLogoutButton:hover {
+    background-color: #2d1717;
+}
+
+/* Topbar (Refinado con alineación geométrica exacta) */
+QFrame#Topbar {
+    background-color: #3b4cb4;
+    border: none;
+}
+
+QLabel#TopbarTitle {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+QLabel#TopbarSession {
+    color: #cbd5e1;
+    font-size: 12px;
     font-weight: bold;
 }
 
-QPushButton:hover {
-    background-color: #5c63db;
-    border-color: #5c63db;
+/* Área de Trabajo y Tarjetas */
+QFrame#AreaTrabajo {
+    background-color: #212121;
 }
 
-QPushButton:pressed {
-    background-color: #494fad;
+QLabel#DashboardTitle {
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: bold;
 }
 
-/* Etiquetas */
-QLabel {
-    color: #e2e4f0;
+QLabel#DashboardSub {
+    color: #a1a1a8;
+    font-size: 13px;
+    padding-bottom: 8px;
+}
+
+/* Cards (Padding uniforme garantizado) */
+QFrame#Card {
+    background-color: #2d2d2d;
+    border: 1px solid #3e3e3e;
+    border-radius: 8px;
+}
+
+QLabel#CardTitle {
+    color: #52a9ff;
+    font-size: 16px;
+    font-weight: bold;
+    background-color: transparent; /* Corregido fondo oscuro bajo el título */
+}
+
+QLabel#CardBody {
+    color: #cbd5e1;
+    line-height: 1.6;
+    font-size: 13px;
     background-color: transparent;
-}
-
-/* Menú Superior (MenuBar) */
-QMenuBar {
-    background-color: #181a23;
-    border-bottom: 1px solid #2f3352;
-}
-
-QMenuBar::item {
-    background-color: transparent;
-    padding: 6px 12px;
-    color: #e2e4f0;
-}
-
-QMenuBar::item:selected {
-    background-color: #212433;
-    color: #7078f4;
-}
-
-QMenu {
-    background-color: #181a23;
-    border: 1px solid #2f3352;
-}
-
-QMenu::item {
-    padding: 6px 20px;
-    color: #e2e4f0;
-}
-
-QMenu::item:selected {
-    background-color: #7078f4;
-    color: #111218;
-}
-
-/* Mensajes de Alerta (MessageBox) */
-QMessageBox {
-    background-color: #111218;
-    color: #e2e4f0;
-}
-
-QMessageBox QPushButton {
-    min-width: 80px;
-    padding: 5px 15px;
 }

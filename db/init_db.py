@@ -1,3 +1,5 @@
+# db/init_db.py
+
 import sqlite3
 import os
 
@@ -40,10 +42,21 @@ def inicializar_bd():
                 )''')
 
     c.execute('CREATE TABLE IF NOT EXISTS estados (nombre TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS municipio (cod_muni INTEGER, descripcion TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS municipio (cod_muni INTEGER, descripcion TEXT, estado_nombre TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS parroquia (cod_parro INTEGER, cod_muni INTEGER, descripcion TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS comunidad (cod_com INTEGER, cod_parro INTEGER, descripcion TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS comunidad (cod_com TEXT, cod_parro INTEGER, descripcion TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS consultas (descripcion TEXT)')
+
+    # === NUEVA TABLA DE DOCUMENTOS UNIFICADA ===
+    c.execute('''CREATE TABLE IF NOT EXISTS documents (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    patient_id INTEGER NULL,
+                    tipo_documento TEXT NOT NULL,
+                    nombre_archivo TEXT NOT NULL,
+                    ruta_archivo TEXT NOT NULL,
+                    fecha_creacion TEXT NOT NULL,
+                    FOREIGN KEY (patient_id) REFERENCES pacientes(id) ON DELETE SET NULL
+                )''')
 
     c.execute("SELECT count(*) FROM usuarios")
 
