@@ -2,13 +2,16 @@
 
 import os
 import json
+import httpx 
 from dotenv import load_dotenv
 from groq import Groq
 
 from PySide6.QtCore import QObject, Signal
 
 # Cargar variables de entorno del archivo .env
-load_dotenv()
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+dotenv_path = os.path.join(base_dir, ".env")
+load_dotenv(dotenv_path=dotenv_path)
 
 
 class AIPatientParserWorker(QObject):
@@ -26,9 +29,28 @@ class AIPatientParserWorker(QObject):
             if not api_key:
                 raise ValueError("No se encontró la clave de API (GROQ_API_KEY) en el entorno.")
 
-            client = Groq(api_key=api_key)
+            # Configuración de proxy
+            proxy_url = os.getenv("PROXY_URL")
+            if proxy_url:
+                print(f"\n[DEBUG IA] Conectando a Groq a través de Proxy local: {proxy_url}")
+                h_client = None
+                try:
+                    h_client = httpx.Client(proxy=proxy_url)
+                except TypeError:
+                    try:
+                        h_client = httpx.Client(proxies=proxy_url)
+                    except TypeError:
+                        os.environ["HTTP_PROXY"] = proxy_url
+                        os.environ["HTTPS_PROXY"] = proxy_url
+                        os.environ["ALL_PROXY"] = proxy_url
+                        h_client = httpx.Client()
+                
+                client = Groq(api_key=api_key, http_client=h_client)
+            else:
+                print("\n[DEBUG IA] Conectando a Groq de forma DIRECTA (Sin Proxy)")
+                client = Groq(api_key=api_key)
 
-            # Prompt del sistema diseñado para parsear o INVENTAR datos coherentes con tu DB
+            # Prompt del sistema
             prompt_sistema = """
             Eres un asistente médico experto en transcripción de datos clínicos.
             Tu tarea es analizar el texto proporcionado por el usuario y extraer la información en un objeto JSON estricto.
@@ -36,7 +58,7 @@ class AIPatientParserWorker(QObject):
             ========================================================================
             REGLA DE GENERACIÓN ALEATORIA (DUMMY DATA):
             Si el usuario te pide "datos aleatorios", "inventar un paciente", "test", "prueba", "rellena todo" o cualquier variante de simulación:
-            Debes INVENTAR un paciente venezolano realista (apellidos, nombres, cédula, teléfono, dirección, etc.).
+            Debes INVENTAR un caso de paciente venezolano realista.
             
             Para garantizar la INTEGRIDAD REFERENCIAL con la base de datos SQLite, debes elegir obligatoriamente una de las siguientes combinaciones geográficas exactas (elige una al azar):
             
@@ -80,14 +102,13 @@ class AIPatientParserWorker(QObject):
             4. Retorna ÚNICAMENTE el objeto JSON. Sin explicaciones ni formato markdown.
             """
 
-            # Llamada a Groq utilizando el modo JSON nativo (response_format)
             completion = client.chat.completions.create(
-                model="openai/gpt-oss-20b", # Usando tu nuevo modelo de alto rendimiento
+                model="openai/gpt-oss-20b",
                 messages=[
                     {"role": "system", "content": prompt_sistema},
                     {"role": "user", "content": self.texto_usuario}
                 ],
-                temperature=0.4, # Subimos levemente la temperatura para permitir mejor creatividad en datos aleatorios
+                temperature=0.4,
                 response_format={"type": "json_object"}
             )
 

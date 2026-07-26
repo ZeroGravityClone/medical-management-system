@@ -2,12 +2,15 @@
 
 import os
 import json
+import httpx 
 from dotenv import load_dotenv
 from groq import Groq
 
 from PySide6.QtCore import QObject, Signal
 
-load_dotenv()
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+dotenv_path = os.path.join(base_dir, ".env")
+load_dotenv(dotenv_path=dotenv_path)
 
 
 class RecetarioIAWorker(QObject):
@@ -27,7 +30,26 @@ class RecetarioIAWorker(QObject):
             if not api_key:
                 raise ValueError("No se encontró la clave de API (GROQ_API_KEY) en el entorno.")
 
-            client = Groq(api_key=api_key)
+            # Configuración de proxy
+            proxy_url = os.getenv("PROXY_URL")
+            if proxy_url:
+                print(f"\n[DEBUG IA] Conectando a Groq a través de Proxy local: {proxy_url}")
+                h_client = None
+                try:
+                    h_client = httpx.Client(proxy=proxy_url)
+                except TypeError:
+                    try:
+                        h_client = httpx.Client(proxies=proxy_url)
+                    except TypeError:
+                        os.environ["HTTP_PROXY"] = proxy_url
+                        os.environ["HTTPS_PROXY"] = proxy_url
+                        os.environ["ALL_PROXY"] = proxy_url
+                        h_client = httpx.Client()
+                
+                client = Groq(api_key=api_key, http_client=h_client)
+            else:
+                print("\n[DEBUG IA] Conectando a Groq de forma DIRECTA (Sin Proxy)")
+                client = Groq(api_key=api_key)
 
             # Prompt enriquecido con reglas de simulación clínica
             prompt_sistema = """
@@ -85,7 +107,7 @@ class RecetarioIAWorker(QObject):
                     {"role": "system", "content": prompt_sistema},
                     {"role": "user", "content": user_content}
                 ],
-                temperature=0.4, # Permitimos creatividad moderada para inventar recetas lógicas
+                temperature=0.4,
                 response_format={"type": "json_object"}
             )
 

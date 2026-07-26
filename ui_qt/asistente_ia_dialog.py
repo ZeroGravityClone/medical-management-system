@@ -1,22 +1,27 @@
+# ui_qt/asistente_ia_dialog.py
+
 import os
+import httpx 
 from dotenv import load_dotenv
 from groq import Groq
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout,
     QLineEdit, QPushButton, QScrollArea, 
-    QWidget, QLabel
+    QWidget, QLabel, QMessageBox
 )
 from PySide6.QtCore import Qt, Signal, QObject, QThread
 
 # Cargar variables de entorno del archivo .env
 load_dotenv()
 
+
 # =========================
 # WORKER (HILO SEGURO)
 # =========================
 class IAWorker(QObject):
     respuesta_lista = Signal(str)
+    error_ocurrido = Signal(str)
     finished = Signal()
 
     def __init__(self, pregunta):
@@ -26,11 +31,30 @@ class IAWorker(QObject):
     def run(self):
         try:
             api_key = os.getenv("GROQ_API_KEY")
-            
             if not api_key:
                 raise ValueError("No se encontró la clave de API (GROQ_API_KEY) en el entorno.")
 
-            client = Groq(api_key=api_key)
+            # Configuración de proxy
+            proxy_url = os.getenv("PROXY_URL")
+            if proxy_url:
+                h_client = None
+                try:
+                    
+                    h_client = httpx.Client(proxy=proxy_url)
+                except TypeError:
+                    try:
+                        
+                        h_client = httpx.Client(proxies=proxy_url)
+                    except TypeError:
+                        
+                        os.environ["HTTP_PROXY"] = proxy_url
+                        os.environ["HTTPS_PROXY"] = proxy_url
+                        os.environ["ALL_PROXY"] = proxy_url
+                        h_client = httpx.Client()
+                
+                client = Groq(api_key=api_key, http_client=h_client)
+            else:
+                client = Groq(api_key=api_key)
 
             completion = client.chat.completions.create(
                 model="openai/gpt-oss-20b",
@@ -84,7 +108,6 @@ class AsistenteIADialog(QDialog):
         main = QVBoxLayout(self)
 
         self.chat_area = QVBoxLayout()
-        # Alineación superior para que los mensajes no se distribuyan verticalmente
         self.chat_area.setAlignment(Qt.AlignTop) 
 
         self.chat_container = QWidget()
@@ -110,7 +133,6 @@ class AsistenteIADialog(QDialog):
 
         main.addLayout(bottom)
 
-        # Estilo local adaptado a la estética Moonlight
         self.setStyleSheet("""
         QDialog { 
             background: #111218; 
@@ -159,13 +181,11 @@ class AsistenteIADialog(QDialog):
     # ================= CHAT =================
     def add_message(self, role, text):
         label = QLabel()
-        # Habilitar envoltura de texto para evitar desbordes horizontales
         label.setWordWrap(True) 
 
         if role == "USER":
             label.setText(f"🧑 **Tú**:\n{text}")
             label.setAlignment(Qt.AlignLeft)
-            # Fondo azul-grisáceo medio (Moonlight Medium Dark)
             label.setStyleSheet("""
                 background-color: #212433;
                 color: #e2e4f0;
@@ -177,7 +197,6 @@ class AsistenteIADialog(QDialog):
         else:
             label.setText(f"🤖 **IA**:\n{text}")
             label.setAlignment(Qt.AlignLeft)
-            # Fondo oscuro profundo con borde sutil violeta
             label.setStyleSheet("""
                 background-color: #111218;
                 color: #e2e4f0;
@@ -189,7 +208,6 @@ class AsistenteIADialog(QDialog):
 
         self.chat_area.addWidget(label)
 
-        # Auto-scroll hacia el final de la conversación
         self.scroll.verticalScrollBar().setValue(
             self.scroll.verticalScrollBar().maximum()
         )
@@ -206,27 +224,30 @@ class AsistenteIADialog(QDialog):
         self.btn.setEnabled(False)
         self.btn.setText("Pensando...")
 
-        # Inicialización del Hilo de Qt de manera segura
         self.thread = QThread()
         self.worker = IAWorker(pregunta)
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.run)
         self.worker.respuesta_lista.connect(self.mostrar_respuesta)
+        self.worker.error_ocurrido.connect(self.on_error)
+        
         self.worker.finished.connect(self.thread.quit)
-
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
 
         self.thread.start()
 
-    # ================= RESPUESTA UI (SEGURO) =================
     def mostrar_respuesta(self, texto):
         self.add_message("IA", texto)
         self.btn.setEnabled(True)
         self.btn.setText("Enviar")
 
-    # ================= CENTRAR =================
+    def on_error(self, error_msg):
+        QMessageBox.critical(self, "Error de IA", f"No se pudo procesar la solicitud:\n\n{error_msg}")
+        self.btn.setEnabled(True)
+        self.btn.setText("Enviar")
+
     def center(self):
         screen = self.screen().geometry()
         self.move(

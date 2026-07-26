@@ -1,5 +1,5 @@
 /* ========================================================================
-   HOJA DE ESTILOS INSPIRADA EN MOONLIGHT QT - REFINAMIENTO DE LAYOUT
+   HOJA DE ESTILOS INSPIRADA EN MOONLIGHT QT - REFINAMIENTO SENSORIAL
    ======================================================================== */
 
 QWidget {
@@ -17,54 +17,60 @@ QFrame#Sidebar {
 
 QLabel#SidebarTitle {
     color: #52a9ff;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
-    padding-top: 8px;
+    padding-top: 10px;
     padding-bottom: 12px;
+    background: transparent;
 }
 
 QFrame#SidebarDivider {
     background-color: #2d2d2d;
     max-height: 1px;
     margin-bottom: 12px;
+    margin-left: 16px;
 }
 
 QLabel#SidebarSectionLabel {
-    color: #7d7d7d;
-    font-size: 11px;
+    color: #64748b;
+    font-size: 10px;
     font-weight: bold;
     padding-top: 20px;
-    padding-bottom: 4px;
-    padding-left: 12px;
+    padding-bottom: 6px;
+    padding-left: 20px;
+    background: transparent;
 }
 
-/* Botones del Sidebar (Refinados con paddings y tamaños estándar) */
+/* Botones del Sidebar (Refinados con pestaña indicadora interactiva) */
 QPushButton#SidebarButton {
     background-color: transparent;
     color: #cbd5e1;
     border: none;
-    border-radius: 6px;
+    border-left: 3px solid transparent; /* Indicador oculto por defecto */
+    border-radius: 0px 6px 6px 0px; /* Bordes redondeados solo a la derecha */
     padding-top: 10px;
     padding-bottom: 10px;
-    padding-left: 16px; /* Desplazamiento controlado por CSS */
+    padding-left: 16px; /* Aire izquierdo para el icono */
     text-align: left;
     min-height: 20px;
 }
 
 QPushButton#SidebarButton:hover {
-    background-color: #2d2d2d;
+    background-color: #1e202f; /* Fondo ligeramente azulado al pasar el mouse */
     color: #52a9ff;
+    border-left: 3px solid #52a9ff; /* Muestra el indicador vertical cian */
 }
 
 QPushButton#SidebarButton:pressed {
-    background-color: #1a1a1a;
+    background-color: #111218;
 }
 
 QPushButton#SidebarLogoutButton {
     background-color: transparent;
     color: #ef4444;
     border: none;
-    border-radius: 6px;
+    border-left: 3px solid transparent;
+    border-radius: 0px 6px 6px 0px;
     padding-top: 10px;
     padding-bottom: 10px;
     padding-left: 16px;
@@ -76,11 +82,18 @@ QPushButton#SidebarLogoutButton {
 
 QPushButton#SidebarLogoutButton:hover {
     background-color: #2d1717;
+    border-left: 3px solid #ef4444;
 }
 
-/* Topbar (Refinado con alineación geométrica exacta) */
+/* Topbar (Fuerza la transparencia absoluta eliminando los cuadros negros) */
 QFrame#Topbar {
     background-color: #3b4cb4;
+    border: none;
+}
+
+QFrame#Topbar QLabel {
+    background-color: transparent;
+    background: transparent;
     border: none;
 }
 
@@ -114,7 +127,6 @@ QLabel#DashboardSub {
     padding-bottom: 8px;
 }
 
-/* Cards (Padding uniforme garantizado) */
 QFrame#Card {
     background-color: #2d2d2d;
     border: 1px solid #3e3e3e;
@@ -125,7 +137,7 @@ QLabel#CardTitle {
     color: #52a9ff;
     font-size: 16px;
     font-weight: bold;
-    background-color: transparent; /* Corregido fondo oscuro bajo el título */
+    background-color: transparent;
 }
 
 QLabel#CardBody {

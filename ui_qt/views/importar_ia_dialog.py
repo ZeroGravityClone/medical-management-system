@@ -26,25 +26,18 @@ class ImportarIADialog(QDialog):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(12)
 
-        # Instrucciones de uso actualizadas
-        self.lbl_indicaciones = QLabel(
-            "Escriba o pegue los datos en lenguaje natural.\n"
-            "💡 TIP DE DEFENSA: Escribe 'inventa un paciente' o 'datos aleatorios' para simular un registro al instante."
+        # --- TEXTAREA DE INDICACIONES ---
+        layout.addWidget(QLabel("Escriba las indicaciones médicas o un comando rápido de simulación:"))
+        
+        self.txt_notas = QTextEdit()
+        self.txt_notas.setPlaceholderText(
+            "Escriba las indicaciones del tratamiento...\n\n"
+            "💡 Tips de comandos rápidos de simulación:\n"
+            "• 'inventa una receta'\n"
+            "• 'genera una receta de prueba para amigdalitis'\n"
+            "• 'crea una receta aleatoria para hipertensión'"
         )
-        self.lbl_indicaciones.setObjectName("IndicacionesLabel")
-        self.lbl_indicaciones.setWordWrap(True)
-        layout.addWidget(self.lbl_indicaciones)
-
-        # Campo de entrada de texto libre
-        self.txt_prompt = QTextEdit()
-        self.txt_prompt.setPlaceholderText(
-            "Escribe la información o un comando de prueba...\n\n"
-            "Ejemplo de comandos rápidos:\n"
-            "• 'inventa un paciente'\n"
-            "• 'genera datos aleatorios de un paciente masculino'\n"
-            "• 'crea un paciente de prueba estable'"
-        )
-        layout.addWidget(self.txt_prompt)
+        layout.addWidget(self.txt_notas)
 
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(10)
@@ -68,10 +61,10 @@ class ImportarIADialog(QDialog):
                 background-color: #111218;
             }
 
-            QLabel#IndicacionesLabel {
+            QLabel {
                 color: #8a8fbc;
                 font-size: 12px;
-                line-height: 1.4;
+                font-weight: bold;
             }
 
             QTextEdit {
@@ -118,7 +111,7 @@ class ImportarIADialog(QDialog):
         """)
 
     def iniciar_analisis(self):
-        texto = self.txt_prompt.toPlainText().strip()
+        texto = self.txt_notas.toPlainText().strip()
         if not texto:
             QMessageBox.warning(self, "Atención", "El cuadro de texto está vacío.")
             return

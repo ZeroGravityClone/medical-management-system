@@ -7,9 +7,142 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import QDate, Qt
 
-from services.document_service import DocumentService # <-- Importación del servicio único
+from services.document_service import DocumentService
 
 
+# =========================================================================
+# NUEVO: DIÁLOGO DE BÚSQUEDA PERSONALIZADO (Mismo formato que el formulario)
+# =========================================================================
+class BuscarPacienteDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setWindowTitle("Buscar Paciente")
+        self.resize(360, 160)
+        self.setFixedSize(360, 160) # Tamaño fijo compacto
+
+        self.cedula_resultado = None
+
+        self.center()
+        self.build_ui()
+
+    def build_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(12)
+
+        layout.addWidget(QLabel("Seleccione nacionalidad e ingrese la cédula:"))
+
+        # Fila de Cédula estructurada
+        h_layout = QHBoxLayout()
+        h_layout.setSpacing(6)
+
+        self.cbo_nac = QComboBox()
+        self.cbo_nac.addItems(["V", "E", "J"])
+        self.cbo_nac.setFixedWidth(55)
+
+        self.txt_num = QLineEdit()
+        self.txt_num.setPlaceholderText("Ej: 12345678")
+        # Enfocar campo numérico al abrir
+        self.txt_num.setFocus() 
+
+        h_layout.addWidget(self.cbo_nac)
+        h_layout.addWidget(self.txt_num)
+        layout.addLayout(h_layout)
+
+        # Botones
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)
+
+        self.btn_cancelar = QPushButton("Cancelar")
+        self.btn_cancelar.setObjectName("BtnSecondary")
+        self.btn_cancelar.clicked.connect(self.reject)
+
+        self.btn_buscar = QPushButton("Buscar")
+        self.btn_buscar.setObjectName("BtnPrimary")
+        self.btn_buscar.clicked.connect(self.aceptar)
+
+        btn_layout.addWidget(self.btn_cancelar)
+        btn_layout.addStretch()
+        btn_layout.addWidget(self.btn_buscar)
+        layout.addLayout(btn_layout)
+
+        # Trigger al presionar Enter en el teclado
+        self.txt_num.returnPressed.connect(self.aceptar)
+
+        # Estilo acoplado a Moonlight
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #111218;
+            }
+
+            QLabel {
+                color: #8a8fbc;
+                font-weight: bold;
+            }
+
+            QLineEdit, QComboBox {
+                background-color: #1e202f;
+                color: #e2e4f0;
+                border: 1px solid #2f3352;
+                border-radius: 6px;
+                padding: 6px;
+            }
+
+            QLineEdit:focus, QComboBox:focus {
+                border-color: #7078f4;
+            }
+
+            QPushButton {
+                font-weight: bold;
+                border-radius: 6px;
+                padding: 6px 16px;
+            }
+
+            QPushButton#BtnPrimary {
+                background-color: #7078f4;
+                color: #111218;
+                border: 1px solid #7078f4;
+            }
+
+            QPushButton#BtnPrimary:hover {
+                background-color: #5c63db;
+            }
+
+            QPushButton#BtnSecondary {
+                background-color: #1d2035;
+                color: #cbd5e1;
+                border: 1px solid #2d3154;
+            }
+
+            QPushButton#BtnSecondary:hover {
+                background-color: #262b49;
+                border-color: #409eff;
+            }
+        """)
+
+    def aceptar(self):
+        num = self.txt_num.text().strip()
+        if not num:
+            QMessageBox.warning(self, "Atención", "Debe ingresar el número de cédula.")
+            return
+        
+        nac = self.cbo_nac.currentText()
+        # Formatear el resultado como lo espera el repositorio
+        self.cedula_resultado = f"{nac}-{num}"
+        self.accept()
+
+    def center(self):
+        screen = self.screen().geometry()
+        self.move(
+            (screen.width() - self.width()) // 2,
+            (screen.height() - self.height()) // 2
+        )
+
+
+# =========================================================================
+# CLASE PRINCIPAL DE REGISTRO
+# =========================================================================
 class RegistroPacientesDialog(QDialog):
     def __init__(self, pacientes_repo, catalogos_repo, rol_usuario):
         super().__init__()
@@ -181,7 +314,6 @@ class RegistroPacientesDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(10)
 
-        # Botones CRUD originales
         self.btn_buscar = QPushButton("Buscar")
         self.btn_buscar.setObjectName("BtnSecondary")
         
@@ -194,7 +326,6 @@ class RegistroPacientesDialog(QDialog):
         self.btn_eliminar = QPushButton("Eliminar")
         self.btn_eliminar.setObjectName("BtnDanger")
 
-        # NUEVO BOTÓN: Importador Inteligente IA
         self.btn_ia_importar = QPushButton("✨ Llenar con IA")
         self.btn_ia_importar.setObjectName("BtnIA")
 
@@ -207,13 +338,11 @@ class RegistroPacientesDialog(QDialog):
 
         main_layout.addLayout(btn_layout)
 
-        # Conexiones originales
+        # Conexiones
         self.btn_buscar.clicked.connect(self.buscar)
         self.btn_guardar.clicked.connect(self.guardar)
         self.btn_modificar.clicked.connect(self.modificar)
         self.btn_eliminar.clicked.connect(self.eliminar)
-
-        # NUEVA CONEXIÓN: Importador Inteligente
         self.btn_ia_importar.clicked.connect(self.importar_ia)
 
         # Permisos
@@ -461,7 +590,7 @@ class RegistroPacientesDialog(QDialog):
         comunidades = self.catalogos_repo.obtener_comunidades_por_parroquia(cod_parro)
         self.cbo_comu.addItems(comunidades)
 
-    # ---------------- CRUD (MÉTODO GUARDAR ACTUALIZADO AL ORQUESTADOR) ----------------
+    # ---------------- CRUD ----------------
     def guardar(self):
         try:
             cedula = f"{self.cbo_nac.currentText()}-{self.txt_cedula.text()}"
@@ -530,29 +659,46 @@ class RegistroPacientesDialog(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
 
+    # === BUSCAR REFACTORIZADO A MODAL PERSONALIZADO ===
     def buscar(self):
-        cedula, ok = QInputDialog.getText(self, "Buscar", "Cédula:")
-        if not ok or not cedula:
-            return
+        # Lanza el nuevo diálogo de búsqueda estructurado
+        dialog = BuscarPacienteDialog(self)
+        if dialog.exec() == QDialog.Accepted:
+            cedula = dialog.cedula_resultado
+            if not cedula:
+                return
 
-        paciente = self.pacientes_repo.buscar_por_cedula(cedula)
+            paciente = self.pacientes_repo.buscar_por_cedula(cedula)
 
-        if not paciente:
-            QMessageBox.warning(self, "Error", "No encontrado")
-            return
+            if not paciente:
+                QMessageBox.warning(self, "Error", f"No se encontró ningún paciente con la cédula: {cedula}")
+                return
 
-        self.paciente_actual_id = paciente["id"]
+            self.paciente_actual_id = paciente["id"]
 
-        self.txt_apellidos.setText(paciente["apellidos"] or "")
-        self.txt_nombres.setText(paciente["nombres"] or "")
-        self.txt_tel.setText(paciente["telefono"] or "")
-        self.txt_direccion.setPlainText(paciente["direccion"] or "")
+            self.txt_apellidos.setText(paciente["apellidos"] or "")
+            self.txt_nombres.setText(paciente["nombres"] or "")
+            self.txt_tel.setText(paciente["telefono"] or "")
+            self.txt_direccion.setPlainText(paciente["direccion"] or "")
 
-        ced = paciente["cedula"].split("-")
-        self.cbo_nac.setCurrentText(ced[0])
-        self.txt_cedula.setText(ced[1])
+            ced = paciente["cedula"].split("-")
+            self.cbo_nac.setCurrentText(ced[0])
+            self.txt_cedula.setText(ced[1])
 
-        QMessageBox.information(self, "OK", "Paciente cargado")
+            # Propagar cascada geográfica según los datos cargados del paciente
+            self.cbo_lugar.setCurrentText(paciente["lugar_nac"] or "")
+            self.cbo_muni.setCurrentText(paciente["municipio"] or "")
+            self.cbo_parro.setCurrentText(paciente["parroquia"] or "")
+            self.cbo_comu.setCurrentText(paciente["comunidad"] or "")
+
+            self.cbo_condicion.setCurrentText(paciente["condicion"] or "Estable")
+            self.cbo_consulta.setCurrentText(paciente["consulta"] or "")
+
+            QMessageBox.information(
+                self, 
+                "Éxito", 
+                f"Paciente {paciente['nombres']} {paciente['apellidos']} cargado con éxito."
+            )
 
     def modificar(self):
         if self.rol_usuario != "ADMIN":

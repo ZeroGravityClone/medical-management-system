@@ -17,7 +17,7 @@ from ui_qt.gestion_usuarios_dialog import GestionUsuariosDialog
 from ui_qt.calculadora_dialog import CalculadoraDialog
 from ui_qt.acerca_de_dialog import AcercaDeDialog
 from ui_qt.asistente_ia_dialog import AsistenteIADialog
-from ui_qt.recetario_ia_dialog import RecetarioIADialog # <-- NUEVO IMPORT
+from ui_qt.recetario_ia_dialog import RecetarioIADialog
 
 from db.init_db import RUTA_DB
 
@@ -37,7 +37,7 @@ class VentanaPrincipal(QMainWindow):
         # CONFIGURACIÓN VENTANA
         # =======================
         self.setWindowTitle("Sistema de Gestión Médica")
-        self.resize(1100, 550) # Mantenemos estrictamente tu medida optimizada de pantalla
+        self.resize(1100, 550) # Medida optimizada para tu pantalla intacta
         self.center()
 
         # =======================
@@ -68,8 +68,8 @@ class VentanaPrincipal(QMainWindow):
         self.sidebar.setFixedWidth(240)
         
         self.layout_sidebar = QVBoxLayout(self.sidebar)
-        self.layout_sidebar.setContentsMargins(16, 24, 16, 24)
-        self.layout_sidebar.setSpacing(8)
+        self.layout_sidebar.setContentsMargins(0, 24, 16, 24) # Ajustado margen izquierdo a 0 para el indicador del botón
+        self.layout_sidebar.setSpacing(6)
 
         self.construir_sidebar()
         self.layout_principal.addWidget(self.sidebar)
@@ -107,7 +107,7 @@ class VentanaPrincipal(QMainWindow):
 
     def construir_sidebar(self):
         # Header del Sidebar
-        self.lbl_logo = QLabel("MENÚ PRINCIPAL")
+        self.lbl_logo = QLabel("📂  MENÚ PRINCIPAL")
         self.lbl_logo.setObjectName("SidebarTitle")
         self.lbl_logo.setAlignment(Qt.AlignCenter)
         self.layout_sidebar.addWidget(self.lbl_logo)
@@ -120,40 +120,39 @@ class VentanaPrincipal(QMainWindow):
 
         self.layout_sidebar.addSpacing(8)
 
-        # Botones de Navegación
-        self.btn_registro = QPushButton("Registro de Pacientes")
+        # Botones de Navegación con Emojis/Iconos Integrados para mayor usabilidad intuitiva
+        self.btn_registro = QPushButton("  👤  Registro de Pacientes")
         self.btn_registro.setObjectName("SidebarButton")
         self.btn_registro.clicked.connect(self.abrir_registro_pacientes)
         self.layout_sidebar.addWidget(self.btn_registro)
 
-        self.btn_lista = QPushButton("Lista de Pacientes")
+        self.btn_lista = QPushButton("  📋  Lista de Pacientes")
         self.btn_lista.setObjectName("SidebarButton")
         self.btn_lista.clicked.connect(self.abrir_proceso_datos)
         self.layout_sidebar.addWidget(self.btn_lista)
 
-        # NUEVO BOTÓN: Recetario Inteligente (IA)
-        self.btn_recetario = QPushButton("Recetario Inteligente (IA)")
+        self.btn_recetario = QPushButton("  📝  Recetario Inteligente (IA)")
         self.btn_recetario.setObjectName("SidebarButton")
         self.btn_recetario.clicked.connect(self.abrir_recetario_ia)
         self.layout_sidebar.addWidget(self.btn_recetario)
 
-        self.btn_calculadora = QPushButton("Calculadora Médica")
+        self.btn_calculadora = QPushButton("  🧮  Calculadora Médica")
         self.btn_calculadora.setObjectName("SidebarButton")
         self.btn_calculadora.clicked.connect(self.abrir_calculadora)
         self.layout_sidebar.addWidget(self.btn_calculadora)
 
-        self.btn_ia = QPushButton("Asistente IA (Groq)")
+        self.btn_ia = QPushButton("  🤖  Asistente IA (Groq)")
         self.btn_ia.setObjectName("SidebarButton")
         self.btn_ia.clicked.connect(self.abrir_asistente_ia)
         self.layout_sidebar.addWidget(self.btn_ia)
 
         # Sección de Administrador (Condicional)
         if self.rol_usuario == "ADMIN":
-            self.lbl_admin = QLabel("ADMINISTRACIÓN")
+            self.lbl_admin = QLabel("🛡️  ADMINISTRACIÓN")
             self.lbl_admin.setObjectName("SidebarSectionLabel")
             self.layout_sidebar.addWidget(self.lbl_admin)
 
-            self.btn_usuarios = QPushButton("Gestión de Usuarios")
+            self.btn_usuarios = QPushButton("  ⚙️  Gestión de Usuarios")
             self.btn_usuarios.setObjectName("SidebarButton")
             self.btn_usuarios.clicked.connect(self.abrir_gestion_usuarios)
             self.layout_sidebar.addWidget(self.btn_usuarios)
@@ -162,24 +161,26 @@ class VentanaPrincipal(QMainWindow):
         self.layout_sidebar.addStretch()
 
         # Botón de Información
-        self.btn_info = QPushButton("Acerca de")
+        self.btn_info = QPushButton("  ℹ️  Acerca de")
         self.btn_info.setObjectName("SidebarButton")
         self.btn_info.clicked.connect(self.abrir_acerca_de)
         self.layout_sidebar.addWidget(self.btn_info)
 
         # Botón Cerrar Sesión
-        self.btn_logout = QPushButton("Cerrar Sesión")
+        self.btn_logout = QPushButton("  🚪  Cerrar Sesión")
         self.btn_logout.setObjectName("SidebarLogoutButton")
         self.btn_logout.clicked.connect(self.cerrar_sesion)
         self.layout_sidebar.addWidget(self.btn_logout)
 
     def construir_topbar(self):
-        # Título de la pantalla activa
-        self.lbl_pantalla = QLabel("PANEL DE CONTROL")
+        # Título de la pantalla activa con indicador gráfico
+        self.lbl_pantalla = QLabel("📊  PANEL DE CONTROL")
         self.lbl_pantalla.setObjectName("TopbarTitle")
         
-        # Información de sesión
-        self.lbl_sesion = QLabel(f"Usuario: {self.nombre_usuario}   |   Rol: {self.rol_usuario}")
+        # Información de sesión con indicadores de acceso y usuario
+        self.lbl_sesion = QLabel(
+            f"👤  Usuario: {self.nombre_usuario}    |    🔑  Rol: {self.rol_usuario}"
+        )
         self.lbl_sesion.setObjectName("TopbarSession")
 
         self.layout_topbar.addWidget(self.lbl_pantalla)
@@ -245,8 +246,7 @@ class VentanaPrincipal(QMainWindow):
         dialog.exec()
 
     def abrir_recetario_ia(self):
-        """Lanza el diálogo del recetario pasando el repositorio de pacientes de la ventana principal."""
-        dialog = RecetarioIADialog(self, self.pacientes_repo)  # <-- Se pasa self.pacientes_repo
+        dialog = RecetarioIADialog(self, self.pacientes_repo)
         dialog.exec()
 
     def abrir_gestion_usuarios(self):
