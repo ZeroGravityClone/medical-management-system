@@ -57,7 +57,7 @@ medical-management-system/
 ├── insertar en labd.py         # Script de depuración e inserción geográfica relacional
 ├── requirements.txt            # Dependencias del proyecto
 └── main.py                     # Punto de entrada de la aplicación (Event Loop principal)
-
+```
 
 ---
 
@@ -159,5 +159,5 @@ Para el inicio de sesión inicial en la interfaz de acceso de Moonlight:
 *   **Usuario:** `ADMIN`
 *   **Contraseña:** `1234`
 *   **Rol:** `ADMIN`
-```
-```
+
+
