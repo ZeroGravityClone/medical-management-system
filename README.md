@@ -140,7 +140,7 @@ PROXY_URL=http://10.147.15.22:8899
 Para limpiar registros antiguos e inyectar el catálogo territorial de Venezuela de 600 registros de forma jerárquica y coherente, ejecuta el script unificado de semillas:
 
 ```bash
-python "insertar en labd.py"
+python "seed.py"
 ```
 
 ### 2. Ejecutar la aplicación
