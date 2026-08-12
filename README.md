@@ -108,10 +108,10 @@ pip install -r requirements.txt
 
 ## 🛡️ Configuración del Bypass Geográfico de IA (Opcional)
 
-Si ejecutas la aplicación desde una región geográficamente restringida por Groq (como Venezuela) y tienes un túnel **ZeroTier** activo conectado a tu **Shadow PC (Windows)**, puedes configurar tu propio nodo proxy privado de alta velocidad para redirigir las peticiones de la IA.
+Si ejecutas la aplicación desde una región geográficamente restringida por Groq (como Venezuela) y tienes un túnel **ZeroTier** activo conectado a tu PC, puedes configurar tu propio nodo proxy privado de alta velocidad para redirigir las peticiones de la IA.
 
-### Paso A: Levantar el servidor Proxy en tu Shadow PC (Windows)
-1.  Abre una terminal (`PowerShell` o `cmd`) en tu Shadow PC e instala el servidor proxy ligero:
+### Paso A: Levantar el servidor Proxy en tu PC
+1.  Abre una terminal (`PowerShell` o `cmd`) en tu PC e instala el servidor proxy ligero:
     ```powershell
     pip install proxy.py
     ```
@@ -119,7 +119,7 @@ Si ejecutas la aplicación desde una región geográficamente restringida por Gr
     ```powershell
     proxy --hostname 0.0.0.0 --port 8899
     ```
-3.  Identifica la IP IPv4 asignada a tu adaptador de red de **ZeroTier** en el Shadow PC (ejemplo: `10.147.15.22`).
+3.  Identifica la IP IPv4 asignada a tu adaptador de red de **ZeroTier** en tu PC (ejemplo: `10.147.15.22`).
 
 ### Paso B: Configurar las variables en la Chromebook (Debian)
 Crea un archivo llamado **`.env`** en la raíz de tu proyecto e ingresa tu API Key de Groq y la ruta de red de tu proxy de ZeroTier:
@@ -128,7 +128,7 @@ Crea un archivo llamado **`.env`** en la raíz de tu proyecto e ingresa tu API K
 # Clave de API de Groq
 GROQ_API_KEY=tu_gsk_de_groq_aqui
 
-# Proxy de ZeroTier apuntando a tu Shadow PC (Comenta o elimina esta línea si no requieres proxy)
+# Proxy de ZeroTier apuntando a tu PC (Comenta o elimina esta línea si no requieres proxy)
 PROXY_URL=http://10.147.15.22:8899
 ```
 
