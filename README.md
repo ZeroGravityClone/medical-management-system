@@ -1,7 +1,7 @@
 
 # Sistema de Gestión Médica Inteligente
 
-Este proyecto es un sistema de gestión médica desarrollado de forma nativa en **PySide6 (Qt6)** utilizando **SQLite** como motor de persistencia relacional. Diseñado específicamente para optimizar la velocidad de registro clínico, el sistema integra automatización asistida por Inteligencia Artificial (NLP con Groq), generación desatendida de documentos PDF e ingeniería de red privada (SD-WAN) para evadir restricciones de geolocalización.
+Este proyecto es un sistema de gestión médica desarrollado de forma nativa en **PySide6 (Qt6)** utilizando **SQLite** como motor de persistencia relacional. Diseñado específicamente para optimizar la velocidad de registro clínico, el sistema integra automatización asistida por Inteligencia Artificial (NLP a través de OpenRouter), generación desatendida de documentos PDF e ingeniería de red privada (SD-WAN) opcional para evadir restricciones de geolocalización.
 
 ---
 
@@ -9,7 +9,7 @@ Este proyecto es un sistema de gestión médica desarrollado de forma nativa en 
 
 *   **Interfaz Moonlight Qt:** Diseño de interfaz unificado, reactivo y de alta definición (dark theme) con un sistema de navegación basado en Sidebar y Topbar adaptado para un rendimiento óptimo en Linux/Crouton.
 *   **Automatización Asistida por IA (Groq):**
-    *   **Llenado Inteligente de Datos:** Permite al operador ingresar información en lenguaje natural para que el modelo `llama-3.1-8b-instant` estructure la información de registro clínico de forma asíncrona mediante hilos `QThread`.
+    *   **Llenado Inteligente de Datos:** Permite al operador ingresar información en lenguaje natural para que el modelo configurado (por defecto `inclusionai/ling-3.0-flash-sante:free` vía OpenRouter) estructure la información de registro clínico de forma asíncrona mediante hilos `QThread`.
     *   **Generador de Recetarios e Indicaciones:** Transcribe e interpreta indicaciones informales del médico a una estructura JSON que es compilada físicamente en un PDF.
     *   **Simulación Académica:** Soporta comandos rápidos de prueba (ej: `"inventa un paciente"`, `"receta de prueba"`) con datos de prueba realistas para demostraciones.
 *   **Generación de Documentos (ReportLab):** Compilación y exportación automatizada de planillas oficiales de registro e indicaciones en formato PDF, almacenadas de forma organizada en la bóveda digital.
@@ -66,7 +66,7 @@ medical-management-system/
 *   **Lenguaje:** Python 3.9+
 *   **GUI Framework:** PySide6 (Qt 6)
 *   **Database:** SQLite 3
-*   **IA API:** Groq SDK (Llama 3.1 8B / gpt-oss-20b)
+*   **IA API:** OpenRouter (SDK `openai`) — modelo por defecto `inclusionai/ling-3.0-flash-sante:free`
 *   **PDF Compiler:** ReportLab 4.x
 *   **HTTP/Proxy Client:** HTTPX
 *   **Red Virtual:** ZeroTier One
@@ -108,7 +108,7 @@ pip install -r requirements.txt
 
 ## 🛡️ Configuración del Bypass Geográfico de IA (Opcional)
 
-Si ejecutas la aplicación desde una región geográficamente restringida por Groq (como Venezuela) y tienes un túnel **ZeroTier** activo conectado a tu PC, puedes configurar tu propio nodo proxy privado de alta velocidad para redirigir las peticiones de la IA.
+Si ejecutas la aplicación desde una región con restricciones de acceso a OpenRouter (como Venezuela) y tienes un túnel **ZeroTier** activo conectado a tu PC, puedes configurar tu propio nodo proxy privado de alta velocidad para redirigir las peticiones de la IA.
 
 ### Paso A: Levantar el servidor Proxy en tu PC
 1.  Abre una terminal (`PowerShell` o `cmd`) en tu PC e instala el servidor proxy ligero:
@@ -122,11 +122,14 @@ Si ejecutas la aplicación desde una región geográficamente restringida por Gr
 3.  Identifica la IP IPv4 asignada a tu adaptador de red de **ZeroTier** en tu PC (ejemplo: `10.147.15.22`).
 
 ### Paso B: Configurar las variables en la Chromebook (Debian)
-Crea un archivo llamado **`.env`** en la raíz de tu proyecto e ingresa tu API Key de Groq y la ruta de red de tu proxy de ZeroTier:
+Crea un archivo llamado **`.env`** en la raíz de tu proyecto e ingresa tu API Key de OpenRouter, el modelo a utilizar y (opcionalmente) la ruta de red de tu proxy de ZeroTier:
 
 ```env
-# Clave de API de Groq
-GROQ_API_KEY=tu_gsk_de_groq_aqui
+# Clave de API de OpenRouter (https://openrouter.ai/keys)
+OPENROUTER_API_KEY=tu_sk-or_de_openrouter_aqui
+
+# Modelo de IA de OpenRouter (por defecto: gratuito y enfocado en salud)
+AI_MODEL=inclusionai/ling-3.0-flash-sante:free
 
 # Proxy de ZeroTier apuntando a tu PC (Comenta o elimina esta línea si no requieres proxy)
 PROXY_URL=http://10.147.15.22:8899

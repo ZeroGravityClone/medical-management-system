@@ -141,7 +141,7 @@ class VentanaPrincipal(QMainWindow):
         self.btn_calculadora.clicked.connect(self.abrir_calculadora)
         self.layout_sidebar.addWidget(self.btn_calculadora)
 
-        self.btn_ia = QPushButton("  🤖  Asistente IA (Groq)")
+        self.btn_ia = QPushButton("  🤖  Asistente IA (OpenRouter)")
         self.btn_ia.setObjectName("SidebarButton")
         self.btn_ia.clicked.connect(self.abrir_asistente_ia)
         self.layout_sidebar.addWidget(self.btn_ia)
@@ -211,7 +211,7 @@ class VentanaPrincipal(QMainWindow):
 
         lbl_card_body = QLabel(
             "• El registro de pacientes se almacena localmente mediante base de datos SQLite relacional.\n"
-            "• Las consultas de IA están conectadas de manera asíncrona mediante la API segura de Groq utilizando QThreads.\n"
+            "• Las consultas de IA están conectadas de manera asíncrona mediante la API segura de OpenRouter utilizando QThreads.\n"
             "• Utilice el menú de administración para el control, alta y modificación de accesos en el sistema."
         )
         lbl_card_body.setObjectName("CardBody")

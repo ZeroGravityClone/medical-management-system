@@ -3,7 +3,7 @@
 import os
 import httpx 
 from dotenv import load_dotenv
-from groq import Groq
+from openai import OpenAI
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout,
@@ -30,9 +30,11 @@ class IAWorker(QObject):
 
     def run(self):
         try:
-            api_key = os.getenv("GROQ_API_KEY")
+            api_key = os.getenv("OPENROUTER_API_KEY")
             if not api_key:
-                raise ValueError("No se encontró la clave de API (GROQ_API_KEY) en el entorno.")
+                raise ValueError("No se encontró la clave de API (OPENROUTER_API_KEY) en el archivo .env.")
+
+            model = os.getenv("AI_MODEL", "inclusionai/ling-3.0-flash-sante:free")
 
             # Configuración de proxy
             proxy_url = os.getenv("PROXY_URL")
@@ -52,12 +54,12 @@ class IAWorker(QObject):
                         os.environ["ALL_PROXY"] = proxy_url
                         h_client = httpx.Client()
                 
-                client = Groq(api_key=api_key, http_client=h_client)
+                client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1", http_client=h_client)
             else:
-                client = Groq(api_key=api_key)
+                client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
 
             completion = client.chat.completions.create(
-                model="openai/gpt-oss-20b",
+                model=model,
                 messages=[
                     {
                         "role": "system",
@@ -89,7 +91,7 @@ class AsistenteIADialog(QDialog):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Asistente Médico IA (Groq)")
+        self.setWindowTitle("Asistente Médico IA (OpenRouter)")
         self.resize(700, 600)
 
         self.center()
@@ -97,7 +99,7 @@ class AsistenteIADialog(QDialog):
 
         self.add_message(
             "IA",
-            "Hola 👋 Soy tu asistente médico conectado a Groq de forma segura. ¿En qué puedo ayudarte?"
+            "Hola 👋 Soy tu asistente médico conectado a OpenRouter de forma segura. ¿En qué puedo ayudarte?"
         )
 
         self.thread = None

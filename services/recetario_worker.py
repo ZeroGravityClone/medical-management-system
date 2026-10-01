@@ -4,13 +4,29 @@ import os
 import json
 import httpx 
 from dotenv import load_dotenv
-from groq import Groq
+from openai import OpenAI
 
 from PySide6.QtCore import QObject, Signal
 
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 dotenv_path = os.path.join(base_dir, ".env")
 load_dotenv(dotenv_path=dotenv_path)
+
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+DEFAULT_AI_MODEL = "inclusionai/ling-3.0-flash-sante:free"
+
+
+def extraer_json(texto):
+    """Extrae el objeto JSON de la respuesta del modelo, tolerante a bloques markdown."""
+    texto = (texto or "").strip()
+    if "```" in texto:
+        inicio = texto.find("```")
+        fin = texto.rfind("```")
+        bloque = texto[inicio + 3:fin].strip()
+        if bloque.lower().startswith("json"):
+            bloque = bloque[4:].strip()
+        return json.loads(bloque)
+    return json.loads(texto)
 
 
 class RecetarioIAWorker(QObject):
@@ -26,14 +42,16 @@ class RecetarioIAWorker(QObject):
 
     def run(self):
         try:
-            api_key = os.getenv("GROQ_API_KEY")
+            api_key = os.getenv("OPENROUTER_API_KEY")
             if not api_key:
-                raise ValueError("No se encontró la clave de API (GROQ_API_KEY) en el entorno.")
+                raise ValueError("No se encontró la clave de API (OPENROUTER_API_KEY) en el archivo .env.")
+
+            model = os.getenv("AI_MODEL", DEFAULT_AI_MODEL)
 
             # Configuración de proxy
             proxy_url = os.getenv("PROXY_URL")
             if proxy_url:
-                print(f"\n[DEBUG IA] Conectando a Groq a través de Proxy local: {proxy_url}")
+                print(f"\n[DEBUG IA] Conectando a OpenRouter a través de Proxy local: {proxy_url}")
                 h_client = None
                 try:
                     h_client = httpx.Client(proxy=proxy_url)
@@ -46,10 +64,10 @@ class RecetarioIAWorker(QObject):
                         os.environ["ALL_PROXY"] = proxy_url
                         h_client = httpx.Client()
                 
-                client = Groq(api_key=api_key, http_client=h_client)
+                client = OpenAI(api_key=api_key, base_url=OPENROUTER_BASE_URL, http_client=h_client)
             else:
-                print("\n[DEBUG IA] Conectando a Groq de forma DIRECTA (Sin Proxy)")
-                client = Groq(api_key=api_key)
+                print("\n[DEBUG IA] Conectando a OpenRouter de forma DIRECTA (Sin Proxy)")
+                client = OpenAI(api_key=api_key, base_url=OPENROUTER_BASE_URL)
 
             # Prompt enriquecido con reglas de simulación clínica
             prompt_sistema = """
@@ -102,17 +120,16 @@ class RecetarioIAWorker(QObject):
             user_content = f"Paciente: {self.nombre_paciente}, Cédula: {self.cedula_paciente}.\nIndicaciones: {self.texto_indicaciones}"
 
             completion = client.chat.completions.create(
-                model="openai/gpt-oss-20b",
+                model=model,
                 messages=[
                     {"role": "system", "content": prompt_sistema},
                     {"role": "user", "content": user_content}
                 ],
-                temperature=0.4,
-                response_format={"type": "json_object"}
+                temperature=0.4
             )
 
             raw_response = completion.choices[0].message.content
-            receta_json = json.loads(raw_response)
+            receta_json = extraer_json(raw_response)
 
             self.receta_lista.emit(receta_json)
 
